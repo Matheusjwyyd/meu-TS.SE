@@ -500,12 +500,12 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if not exist "$(TargetDir)libs\x86\" md "$(TargetDir)libs\x86\"
-xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\x86\*.*" "$(TargetDir)libs\x86\"
-if not exist "$(TargetDir)libs\amd64\" md "$(TargetDir)libs\amd64\"
-xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\amd64\*.*" "$(TargetDir)libs\amd64\"
+    <PostBuildEvent>if not exist "$(TargetDir)x86\" md "$(TargetDir)x86\"
+xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\x86\*.*" "$(TargetDir)x86\"
+if not exist "$(TargetDir)amd64\" md "$(TargetDir)amd64\"
+xcopy /s /y "$(SolutionDir)packages\Microsoft.SqlServer.Compact.4.0.8876.1\NativeBinaries\amd64\*.*" "$(TargetDir)amd64\"
 
-ROBOCOPY "$(TargetDir) " "$(TargetDir)libs\ " /XF *.exe *.sdf *.config *.manifest *.cfg *.csv *.log *.pdb *.pdf  /XD gameref img libs logs lang dbs updater /E /IS
+ROBOCOPY "$(TargetDir) " "$(TargetDir)libs\ " /XF *.exe *.sdf *.config *.manifest *.cfg *.csv *.log *.pdb *.pdf  /XD gameref img libs logs lang dbs updater amd64 x86 /E /IS
 if %25errorlevel%25 leq 4 exit 0 else exit %25errorlevel%25</PostBuildEvent>
   </PropertyGroup>
 </Project>

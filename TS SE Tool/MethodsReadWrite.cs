@@ -842,6 +842,23 @@ namespace TS_SE_Tool
 
         void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            if (e.Error != null)
+            {
+                string details = DescribeException(e.Error);
+
+                IO_Utilities.ErrorLogWriter("Error during Loading save file" + Environment.NewLine + details);
+
+                SetDefaultValues(false);
+                ToggleMainControlsAccess(true);
+                ToggleControlsAccess(false);
+                toolStripProgressBarMain.Value = 0;
+
+                MessageBox.Show("The save could not be loaded. No save data was written." + Environment.NewLine + Environment.NewLine + details,
+                                "Save load failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                return;
+            }
+
             if (e.Cancelled == true)
             {
                 SetDefaultValues(false);
