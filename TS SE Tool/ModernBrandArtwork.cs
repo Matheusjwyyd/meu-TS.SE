@@ -37,8 +37,8 @@ namespace TS_SE_Tool
             using (Pen roadShadow = new Pen(Color.FromArgb(100, 4, 17, 30), Math.Max(24, height / 3f)))
             using (Pen roadLine = new Pen(Color.FromArgb(255, 255, 187, 87), Math.Max(2, height / 55f)))
             using (Pen border = new Pen(Color.FromArgb(90, 215, 221, 227), 1f))
-            using (Font titleFont = new Font("Segoe UI", Math.Max(16f, height / 7f), FontStyle.Bold, GraphicsUnit.Pixel))
-            using (Font subtitleFont = new Font("Segoe UI", Math.Max(9f, height / 19f), FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Font titleFont = new Font("Segoe UI", Math.Max(18f, height / 7f), FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Font subtitleFont = new Font("Segoe UI", Math.Max(10f, height / 19f), FontStyle.Bold, GraphicsUnit.Pixel))
             using (SolidBrush titleBrush = new SolidBrush(Color.White))
             using (SolidBrush subtitleBrush = new SolidBrush(Color.FromArgb(204, 211, 218)))
             {
@@ -67,7 +67,7 @@ namespace TS_SE_Tool
                     graphics.DrawImage(mark, new Rectangle(16, (height - markSize) / 2, markSize, markSize));
                 }
 
-                float textX = Math.Min(width * 0.32f, 190f);
+                float textX = Math.Min(Math.Max(width * 0.10f, 112f), 176f);
                 float titleY = height * 0.31f;
                 graphics.DrawString("MEU SAVE EDITOR", titleFont, titleBrush, textX, titleY);
                 graphics.DrawString("ETS2  /  ATS  |  SAVE STUDIO", subtitleFont, subtitleBrush, textX + 2f, titleY + titleFont.Size + 7f);

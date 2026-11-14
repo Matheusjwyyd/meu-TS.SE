@@ -47,7 +47,12 @@ namespace TS_SE_Tool
             form.StartPosition = FormStartPosition.CenterScreen;
 
             if (rootLayout != null && rootLayout.ColumnStyles.Count > 1)
-                rootLayout.ColumnStyles[1].Width = 320F;
+            {
+                rootLayout.ColumnStyles[0].SizeType = SizeType.Percent;
+                rootLayout.ColumnStyles[0].Width = 100F;
+                rootLayout.ColumnStyles[1].SizeType = SizeType.Absolute;
+                rootLayout.ColumnStyles[1].Width = 280F;
+            }
 
             MenuStrip menuStrip = FindControl<MenuStrip>(form, "menuStripMain");
             StatusStrip statusStrip = FindControl<StatusStrip>(form, "statusStripMain");
@@ -55,29 +60,14 @@ namespace TS_SE_Tool
             TableLayoutPanel sidebar = FindControl<TableLayoutPanel>(form, "tableLayoutPanel16");
             GroupBox profileCard = FindControl<GroupBox>(form, "groupBoxMainProfilesAndSaves");
 
-            if (rootLayout != null && mainTabs != null && rootLayout.Controls.Contains(mainTabs))
+            if (mainTabs != null)
             {
-                rootLayout.SuspendLayout();
-                rootLayout.Controls.Remove(mainTabs);
-                TableLayoutPanel mainContent = new TableLayoutPanel();
-                mainContent.Name = "modernNavigationContent";
-                mainContent.Dock = DockStyle.Fill;
-                mainContent.Margin = Padding.Empty;
-                mainContent.Padding = Padding.Empty;
-                mainContent.ColumnCount = 2;
-                mainContent.RowCount = 1;
-                mainContent.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 188F));
-                mainContent.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-                mainContent.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-                TableLayoutPanel navigationRail = CreateNavigationRail(mainTabs);
-                mainContent.Controls.Add(navigationRail, 0, 0);
-                mainContent.Controls.Add(mainTabs, 1, 0);
-                rootLayout.Controls.Add(mainContent, 0, 0);
-                rootLayout.ResumeLayout(true);
-
-                form.Resize -= MainWindow_Resize;
-                form.Resize += MainWindow_Resize;
-                UpdateNavigationMode(form);
+                mainTabs.Dock = DockStyle.Fill;
+                mainTabs.Margin = new Padding(4);
+                mainTabs.DrawMode = TabDrawMode.OwnerDrawFixed;
+                mainTabs.SizeMode = TabSizeMode.Fixed;
+                mainTabs.Multiline = false;
+                mainTabs.Padding = new Point(12, 5);
             }
 
             if (menuStrip != null && statusStrip != null && rootLayout != null)
@@ -87,32 +77,40 @@ namespace TS_SE_Tool
                 form.Controls.Remove(rootLayout);
                 form.Controls.Remove(statusStrip);
 
-                menuStrip.Dock = DockStyle.Fill;
+                menuStrip.Dock = DockStyle.Top;
                 menuStrip.AutoSize = false;
+                menuStrip.LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow;
                 menuStrip.Height = 32;
-                statusStrip.Dock = DockStyle.Fill;
+                menuStrip.ImageScalingSize = new Size(18, 18);
+                statusStrip.Dock = DockStyle.Bottom;
                 statusStrip.AutoSize = false;
                 statusStrip.Height = 24;
 
-                TableLayoutPanel shell = new TableLayoutPanel();
-                shell.Name = "modernMainShell";
-                shell.Dock = DockStyle.Fill;
-                shell.Margin = Padding.Empty;
-                shell.Padding = Padding.Empty;
-                shell.ColumnCount = 1;
-                shell.RowCount = 4;
-                shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-                shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
-                shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
-                shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-                shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
-                shell.Controls.Add(menuStrip, 0, 0);
-                shell.Controls.Add(CreateBrandHeader(), 0, 1);
-                shell.Controls.Add(rootLayout, 0, 2);
-                shell.Controls.Add(statusStrip, 0, 3);
-                form.Controls.Add(shell);
+                TableLayoutPanel contentHost = new TableLayoutPanel();
+                contentHost.Name = "modernContentHost";
+                contentHost.Dock = DockStyle.None;
+                contentHost.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+                contentHost.Margin = Padding.Empty;
+                contentHost.Padding = Padding.Empty;
+                contentHost.ColumnCount = 1;
+                contentHost.RowCount = 1;
+                contentHost.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+                contentHost.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+                rootLayout.Dock = DockStyle.Fill;
+                contentHost.Controls.Add(rootLayout, 0, 0);
+                menuStrip.Dock = DockStyle.Top;
+                statusStrip.Dock = DockStyle.Bottom;
+                form.Controls.Add(contentHost);
+                form.Controls.Add(menuStrip);
+                form.Controls.Add(statusStrip);
+                form.Controls.SetChildIndex(menuStrip, 0);
+                form.Controls.SetChildIndex(statusStrip, 1);
+                form.Controls.SetChildIndex(contentHost, 2);
                 form.MainMenuStrip = menuStrip;
                 form.ResumeLayout(true);
+                form.Resize -= MainWindow_Resize;
+                form.Resize += MainWindow_Resize;
+                LayoutMainContent(form);
             }
 
             if (sidebar != null)
@@ -154,162 +152,8 @@ namespace TS_SE_Tool
             if (tabs == null)
                 return;
 
-            FlowLayoutPanel buttons = FindControl<FlowLayoutPanel>(form, "modernNavigationButtons");
-            if (buttons != null)
-            {
-                foreach (Control control in buttons.Controls)
-                {
-                    ModernNavigationButton button = control as ModernNavigationButton;
-                    if (button == null)
-                        continue;
-                    int index = Convert.ToInt32(button.Tag, CultureInfo.InvariantCulture);
-                    if (index >= 0 && index < tabs.TabPages.Count)
-                        button.Text = tabs.TabPages[index].Text;
-                }
-            }
-
-            UpdateNavigationButtons(tabs);
-            UpdateNavigationMode(form);
-        }
-
-        private static TableLayoutPanel CreateNavigationRail(TabControl tabs)
-        {
-            TableLayoutPanel rail = new TableLayoutPanel();
-            rail.Name = "modernNavigationRail";
-            rail.Dock = DockStyle.Fill;
-            rail.Margin = Padding.Empty;
-            rail.Padding = new Padding(8, 8, 8, 8);
-            rail.BackColor = Color.FromArgb(232, 236, 240);
-            rail.ColumnCount = 1;
-            rail.RowCount = 2;
-            rail.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            rail.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
-            rail.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-            Label heading = new Label();
-            heading.Name = "modernNavigationHeading";
-            heading.Text = "NAVEGAÇÃO";
-            heading.Dock = DockStyle.Fill;
-            heading.TextAlign = ContentAlignment.MiddleLeft;
-            heading.Font = new Font("Segoe UI", 8F, FontStyle.Bold, GraphicsUnit.Point);
-            heading.ForeColor = Muted;
-            rail.Controls.Add(heading, 0, 0);
-
-            FlowLayoutPanel buttons = new FlowLayoutPanel();
-            buttons.Name = "modernNavigationButtons";
-            buttons.Dock = DockStyle.Fill;
-            buttons.Margin = Padding.Empty;
-            buttons.Padding = new Padding(0, 2, 0, 0);
-            buttons.FlowDirection = FlowDirection.TopDown;
-            buttons.WrapContents = false;
-            buttons.AutoScroll = true;
-            buttons.BackColor = rail.BackColor;
-            Image[] icons = ModernBrandArtwork.CreateMainTabIcons(20);
-
-            for (int i = 0; i < tabs.TabPages.Count; i++)
-            {
-                int index = i;
-                ModernNavigationButton button = new ModernNavigationButton();
-                button.Name = "modernNavigationButton" + i.ToString(CultureInfo.InvariantCulture);
-                button.Tag = i;
-                button.Text = tabs.TabPages[i].Text;
-                button.Image = icons[i];
-                button.ImageAlign = ContentAlignment.MiddleLeft;
-                button.TextImageRelation = TextImageRelation.ImageBeforeText;
-                button.TextAlign = ContentAlignment.MiddleLeft;
-                button.Padding = new Padding(10, 0, 4, 0);
-                button.Size = new Size(164, 42);
-                button.Margin = new Padding(0, 0, 0, 5);
-                button.TabStop = true;
-                button.Click += delegate { tabs.SelectedIndex = index; };
-                buttons.Controls.Add(button);
-            }
-
-            rail.Controls.Add(buttons, 0, 1);
-            tabs.SelectedIndexChanged -= MainTabs_SelectedIndexChanged;
-            tabs.SelectedIndexChanged += MainTabs_SelectedIndexChanged;
-            rail.Disposed += delegate
-            {
-                foreach (Control control in buttons.Controls)
-                {
-                    Button button = control as Button;
-                    if (button != null && button.Image != null)
-                    {
-                        button.Image.Dispose();
-                        button.Image = null;
-                    }
-                }
-            };
-            UpdateNavigationButtons(tabs);
-            return rail;
-        }
-
-        private static void MainTabs_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateNavigationButtons(sender as TabControl);
-        }
-
-        private static void UpdateNavigationButtons(TabControl tabs)
-        {
-            if (tabs == null || tabs.Parent == null)
-                return;
-
-            FlowLayoutPanel buttons = FindControl<FlowLayoutPanel>(tabs.Parent, "modernNavigationButtons");
-            if (buttons == null)
-                return;
-
-            foreach (Control control in buttons.Controls)
-            {
-                ModernNavigationButton button = control as ModernNavigationButton;
-                if (button == null)
-                    continue;
-                button.Active = Convert.ToInt32(button.Tag, CultureInfo.InvariantCulture) == tabs.SelectedIndex;
-                button.AccessibleName = button.Text;
-                button.AccessibleRole = AccessibleRole.PageTab;
-                button.Invalidate();
-            }
-        }
-
-        private static void MainWindow_Resize(object sender, EventArgs e)
-        {
-            UpdateNavigationMode(sender as Form);
-        }
-
-        private static void UpdateNavigationMode(Form form)
-        {
-            if (form == null || form.IsDisposed)
-                return;
-
-            TableLayoutPanel mainContent = FindControl<TableLayoutPanel>(form, "modernNavigationContent");
-            TableLayoutPanel rail = FindControl<TableLayoutPanel>(form, "modernNavigationRail");
-            TabControl tabs = FindControl<TabControl>(form, "tabControlMain");
-            if (mainContent == null || rail == null || tabs == null || mainContent.ColumnStyles.Count < 2)
-                return;
-
-            bool useSideNavigation = form.ClientSize.Width >= 1160;
-            mainContent.ColumnStyles[0].Width = useSideNavigation ? 188F : 0F;
-            rail.Visible = useSideNavigation;
-            if (useSideNavigation)
-            {
-                tabs.Appearance = TabAppearance.FlatButtons;
-                tabs.DrawMode = TabDrawMode.Normal;
-                tabs.SizeMode = TabSizeMode.Fixed;
-                tabs.Multiline = true;
-                tabs.ItemSize = new Size(1, 1);
-                tabs.Padding = Point.Empty;
-            }
-            else
-            {
-                tabs.Appearance = TabAppearance.Normal;
-                tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
-                tabs.SizeMode = TabSizeMode.Fixed;
-                tabs.Multiline = false;
-                tabs.Padding = new Point(12, 5);
-                UpdateTabItemSize(tabs);
-            }
-
-            UpdateNavigationButtons(tabs);
-            mainContent.PerformLayout();
+            ApplyTabControl(tabs);
+            tabs.Invalidate();
         }
 
         private static T FindControl<T>(Control parent, string name) where T : Control
@@ -321,68 +165,39 @@ namespace TS_SE_Tool
             return matches.Length > 0 ? matches[0] as T : null;
         }
 
-        private static Panel CreateBrandHeader()
+        private static void MainWindow_Resize(object sender, EventArgs e)
         {
-            Panel header = new Panel();
-            header.Name = "modernBrandHeader";
-            header.Dock = DockStyle.Fill;
-            header.Margin = Padding.Empty;
-            header.BackColor = Color.FromArgb(54, 60, 67);
+            LayoutMainContent(sender as Form);
+        }
 
-            PictureBox logo = new PictureBox();
-            logo.Name = "modernHeaderLogo";
-            logo.Location = new Point(16, 10);
-            logo.Size = new Size(40, 40);
-            logo.SizeMode = PictureBoxSizeMode.Zoom;
-            logo.Image = ModernBrandArtwork.CreateBrandMark();
-            header.Controls.Add(logo);
+        private static void LayoutMainContent(Form form)
+        {
+            if (form == null || form.IsDisposed)
+                return;
 
-            Label title = new Label();
-            title.Name = "modernHeaderTitle";
-            title.AutoSize = false;
-            title.Location = new Point(68, 8);
-            title.Size = new Size(380, 24);
-            title.Text = "MEU SAVE EDITOR";
-            title.Font = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point);
-            title.ForeColor = Color.White;
-            header.Controls.Add(title);
+            MenuStrip menuStrip = FindControl<MenuStrip>(form, "menuStripMain");
+            StatusStrip statusStrip = FindControl<StatusStrip>(form, "statusStripMain");
+            Control contentHost = FindControl<Control>(form, "modernContentHost");
+            if (menuStrip == null || statusStrip == null || contentHost == null)
+                return;
 
-            Label subtitle = new Label();
-            subtitle.Name = "modernHeaderSubtitle";
-            subtitle.AutoSize = false;
-            subtitle.Location = new Point(69, 31);
-            subtitle.Size = new Size(520, 18);
-            subtitle.Text = "GERENCIAMENTO DE PERFIS E SALVAMENTOS";
-            subtitle.Font = new Font("Segoe UI", 8F, FontStyle.Bold, GraphicsUnit.Point);
-            subtitle.ForeColor = Color.FromArgb(190, 197, 204);
-            header.Controls.Add(subtitle);
+            int top = menuStrip.Bottom;
+            int bottom = statusStrip.Top;
+            Rectangle bounds = new Rectangle(0, top, menuStrip.Width, Math.Max(0, bottom - top));
+            if (contentHost.Bounds != bounds)
+                contentHost.Bounds = bounds;
 
-            Panel badge = new Panel();
-            badge.Name = "modernHeaderBadge";
-            badge.Size = new Size(170, 30);
-            badge.Location = new Point(0, 15);
-            badge.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            badge.BackColor = Color.FromArgb(72, 79, 87);
-            badge.BorderStyle = BorderStyle.FixedSingle;
-            Label badgeText = new Label();
-            badgeText.Dock = DockStyle.Fill;
-            badgeText.Text = "ETS2     |     ATS";
-            badgeText.TextAlign = ContentAlignment.MiddleCenter;
-            badgeText.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
-            badgeText.ForeColor = Color.FromArgb(231, 235, 239);
-            badge.Controls.Add(badgeText);
-            header.Controls.Add(badge);
-            header.Resize += delegate { badge.Left = header.ClientSize.Width - badge.Width - 16; };
-            badge.Left = header.ClientSize.Width - badge.Width - 16;
-            header.Disposed += delegate
+            TableLayoutPanel mainLayout = FindControl<TableLayoutPanel>(form, "tableLayoutPanel15");
+            if (mainLayout != null && mainLayout.ColumnStyles.Count > 1 && contentHost.ClientSize.Width > 0)
             {
-                if (logo.Image != null)
-                {
-                    logo.Image.Dispose();
-                    logo.Image = null;
-                }
-            };
-            return header;
+                const float sidebarWidth = 280F;
+                float centerPercent = Math.Max(1F, (contentHost.ClientSize.Width - sidebarWidth) * 100F / contentHost.ClientSize.Width);
+                mainLayout.ColumnStyles[0].SizeType = SizeType.Percent;
+                mainLayout.ColumnStyles[0].Width = centerPercent;
+                mainLayout.ColumnStyles[1].SizeType = SizeType.Absolute;
+                mainLayout.ColumnStyles[1].Width = sidebarWidth;
+                mainLayout.PerformLayout();
+            }
         }
 
         private static void ProfileCard_Resize(object sender, EventArgs e)
@@ -542,12 +357,6 @@ namespace TS_SE_Tool
 
         private static void ApplyControl(Control control)
         {
-            if (control.Name == "modernBrandHeader")
-                return;
-
-            if (control.Name == "modernHeaderBadge")
-                return;
-
             if (control is TabControl)
             {
                 ApplyTabControl((TabControl)control);
@@ -701,20 +510,6 @@ namespace TS_SE_Tool
 
         private static void ApplyButton(Button button)
         {
-            ModernNavigationButton navigationButton = button as ModernNavigationButton;
-            if (navigationButton != null)
-            {
-                navigationButton.FlatStyle = FlatStyle.Flat;
-                navigationButton.FlatAppearance.BorderSize = 0;
-                navigationButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(222, 227, 232);
-                navigationButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(211, 217, 223);
-                navigationButton.BackColor = navigationButton.Active ? Surface : Color.FromArgb(232, 236, 240);
-                navigationButton.ForeColor = navigationButton.Active ? Ink : Muted;
-                navigationButton.Font = navigationButton.Active ? StrongFont : RegularFont;
-                navigationButton.Cursor = Cursors.Hand;
-                return;
-            }
-
             bool primary = button.Name == "buttonMainLoadSave" || button.Name == "buttonMainWriteSave" ||
                            button.Name == "buttonOK" || button.Name.IndexOf("Save", StringComparison.OrdinalIgnoreCase) >= 0 ||
                            button.Name.IndexOf("Load", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -778,7 +573,7 @@ namespace TS_SE_Tool
             strip.ForeColor = Color.White;
             strip.Font = MenuFont;
             strip.GripStyle = ToolStripGripStyle.Hidden;
-            strip.Padding = status ? new Padding(8, 2, 8, 2) : new Padding(8, 5, 8, 5);
+            strip.Padding = status ? new Padding(8, 2, 8, 2) : new Padding(8, 3, 8, 3);
             if (strip is MenuStrip)
                 strip.AutoSize = false;
 
@@ -806,21 +601,6 @@ namespace TS_SE_Tool
 
         private static void ApplyTabControl(TabControl tabs)
         {
-            TableLayoutPanel mainContent = tabs.Parent as TableLayoutPanel;
-            TableLayoutPanel navigationRail = mainContent == null ? null : FindControl<TableLayoutPanel>(mainContent, "modernNavigationRail");
-            if (navigationRail != null && navigationRail.Visible)
-            {
-                tabs.Appearance = TabAppearance.FlatButtons;
-                tabs.DrawMode = TabDrawMode.Normal;
-                tabs.SizeMode = TabSizeMode.Fixed;
-                tabs.Multiline = true;
-                tabs.ItemSize = new Size(1, 1);
-                tabs.Padding = Point.Empty;
-                tabs.BackColor = Surface;
-                tabs.ForeColor = Ink;
-                return;
-            }
-
             tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabs.SizeMode = TabSizeMode.Fixed;
             tabs.Padding = new Point(12, 5);
@@ -891,21 +671,6 @@ namespace TS_SE_Tool
             grid.RowHeadersDefaultCellStyle.BackColor = Canvas;
             grid.RowHeadersDefaultCellStyle.ForeColor = Muted;
             grid.Font = RegularFont;
-        }
-
-        private sealed class ModernNavigationButton : Button
-        {
-            internal bool Active { get; set; }
-
-            protected override void OnPaint(PaintEventArgs e)
-            {
-                base.OnPaint(e);
-                if (!Active)
-                    return;
-
-                using (SolidBrush accent = new SolidBrush(PrimaryGray))
-                    e.Graphics.FillRectangle(accent, 0, 7, 3, Height - 14);
-            }
         }
 
         private sealed class ModernColorTable : ProfessionalColorTable
