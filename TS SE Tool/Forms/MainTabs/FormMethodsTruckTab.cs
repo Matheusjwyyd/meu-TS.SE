@@ -239,7 +239,10 @@ namespace TS_SE_Tool
 
         public void buttonTruckLicensePlateEdit_Click(object sender, EventArgs e)
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            UserCompanyTruckData SelectedUserCompanyTruck;
+            if (!TryGetSelectedUserCompanyTruck(out SelectedUserCompanyTruck))
+                return;
+
             string LicensePlateText = SelectedUserCompanyTruck.TruckMainData.license_plate.Value;
 
             FormLicensePlateEdit frm = new FormLicensePlateEdit(LicensePlateText);
@@ -256,8 +259,59 @@ namespace TS_SE_Tool
             }
         }
 
+        private Dictionary<string, UserCompanyTruckData> GetCurrentVehicleDictionary()
+        {
+            return IsBusMode ? UserBusEditorDictionary : UserTruckDictionary;
+        }
+
+        private bool TryGetSelectedUserCompanyTruck(out UserCompanyTruckData vehicle)
+        {
+            vehicle = null;
+            if (comboBoxUserTruckCompanyTrucks == null || comboBoxUserTruckCompanyTrucks.SelectedValue == null)
+                return false;
+
+            Dictionary<string, UserCompanyTruckData> vehicles = GetCurrentVehicleDictionary();
+            return vehicles != null && vehicles.TryGetValue(
+                comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out vehicle) && vehicle != null;
+        }
+
+        private string GetCurrentBusId()
+        {
+            if (UserBusEditorDictionary == null || UserBusEditorDictionary.Count == 0)
+                return null;
+
+            string busLogId = SiiNunitData == null ? null : SiiNunitData.Economy.bus_job_log;
+            if (SiiNunitData != null && !String.IsNullOrEmpty(busLogId) && busLogId != "null" &&
+                SiiNunitData.SiiNitems.ContainsKey(busLogId))
+            {
+                TS_SE_Tool.Save.Items.Bus_job_Log busLog =
+                    SiiNunitData.SiiNitems[SiiNunitData.Economy.bus_job_log] as TS_SE_Tool.Save.Items.Bus_job_Log;
+                if (busLog != null)
+                {
+                    foreach (string entryId in busLog.entries.AsEnumerable().Reverse())
+                    {
+                        if (!SiiNunitData.SiiNitems.ContainsKey(entryId))
+                            continue;
+
+                        TS_SE_Tool.Save.Items.Bus_job_Log_Entry entry =
+                            SiiNunitData.SiiNitems[entryId] as TS_SE_Tool.Save.Items.Bus_job_Log_Entry;
+                        if (entry != null && UserBusEditorDictionary.ContainsKey(entry.assigned_bus))
+                            return entry.assigned_bus;
+                    }
+                }
+            }
+
+            return UserBusEditorDictionary.Keys.OrderBy(id => id, StringComparer.Ordinal).FirstOrDefault();
+        }
+
         private void FillUserCompanyTrucksList()
         {
+            if (IsBusMode)
+            {
+                FillUserCompanyBusesList();
+                return;
+            }
+
             if (UserTruckDictionary == null)
                 return;
 
@@ -438,6 +492,52 @@ namespace TS_SE_Tool
             else
                 comboBoxUserTruckCompanyTrucks.SelectedValue = "null";
         }
+
+        private void FillUserCompanyBusesList()
+        {
+            DataTable busTable = new DataTable();
+            busTable.Columns.Add("UserTruckNameless", typeof(string));
+            busTable.Columns.Add("TruckType", typeof(byte));
+            busTable.Columns.Add("TruckName", typeof(string));
+            busTable.Columns.Add("GarageName", typeof(string));
+            busTable.Columns.Add("DriverName", typeof(string));
+            busTable.Columns.Add("TruckState", typeof(byte));
+            busTable.Columns.Add("DisplayMember", typeof(string));
+
+            if (UserBusEditorDictionary != null)
+            {
+                foreach (KeyValuePair<string, UserCompanyTruckData> bus in UserBusEditorDictionary
+                    .OrderBy(item => item.Key, StringComparer.Ordinal))
+                {
+                    if (String.IsNullOrEmpty(bus.Key) || bus.Value == null || bus.Value.TruckMainData == null)
+                        continue;
+
+                    string busName = GetCoachModelName(bus.Key, bus.Value.TruckMainData);
+                    busTable.Rows.Add(bus.Key, (byte)1, busName, String.Empty, "null", (byte)2,
+                        "Ônibus | " + busName);
+                }
+            }
+
+            bool noBuses = busTable.Rows.Count == 0;
+            if (noBuses)
+                busTable.Rows.Add("null", (byte)0, "Nenhum ônibus encontrado", String.Empty, "null", (byte)3,
+                    "Nenhum ônibus próprio encontrado neste save");
+
+            busTable.DefaultView.Sort = "TruckName";
+            comboBoxUserTruckCompanyTrucks.ValueMember = "UserTruckNameless";
+            comboBoxUserTruckCompanyTrucks.DisplayMember = "DisplayMember";
+            comboBoxUserTruckCompanyTrucks.DataSource = busTable;
+            comboBoxUserTruckCompanyTrucks.Enabled = !noBuses;
+
+            if (!noBuses)
+                comboBoxUserTruckCompanyTrucks.SelectedValue = GetCurrentBusId();
+            else
+                comboBoxUserTruckCompanyTrucks.SelectedValue = "null";
+
+            buttonUserTruckSelectCurrent.Enabled = !noBuses;
+            buttonUserTruckSwitchCurrent.Enabled = false;
+            buttonUserTruckSwitchCurrent.Text = "Ônibus selecionado para edição";
+        }
         //
 
         private void UpdateTruckPanelDetails()
@@ -453,7 +553,7 @@ namespace TS_SE_Tool
 
         private void UpdateTruckPanelProgressBar(byte _number)
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
 
             if (SelectedUserCompanyTruck == null)
                 return;
@@ -725,7 +825,9 @@ namespace TS_SE_Tool
 
         private void UpdateTruckPanelFuel()
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
+            if (SelectedUserCompanyTruck == null)
+                return;
 
             string pnlnamefuel = "progressbarTruckFuel";
             Panel pnlfuel = groupBoxUserTruckTruckDetails.Controls.Find(pnlnamefuel, true).FirstOrDefault() as Panel;
@@ -790,7 +892,9 @@ namespace TS_SE_Tool
         
         private void UpdateTruckPanelLicensePlate()
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
+            if (SelectedUserCompanyTruck == null)
+                return;
 
             string LicensePlate = SelectedUserCompanyTruck.TruckMainData.license_plate.Value;
 
@@ -833,6 +937,7 @@ namespace TS_SE_Tool
                 groupBoxUserTruckShareTruckSettings.Enabled = true;
 
                 buttonUserTruckSelectCurrent.Enabled = true;
+                buttonUserTruckSwitchCurrent.Enabled = !IsBusMode;
                 tableLayoutPanelUserTruckControls.Enabled = true;
 
                 UpdateTruckPanelDetails();
@@ -845,6 +950,7 @@ namespace TS_SE_Tool
                 groupBoxUserTruckShareTruckSettings.Enabled = false;
 
                 buttonUserTruckSelectCurrent.Enabled = false;
+                buttonUserTruckSwitchCurrent.Enabled = false;
                 tableLayoutPanelUserTruckControls.Enabled = false;
             }
         }
@@ -945,7 +1051,7 @@ namespace TS_SE_Tool
         //Buttons
         public void buttonTruckReFuel_Click(object sender, EventArgs e)
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
 
             if (SelectedUserCompanyTruck == null)
                 return;
@@ -957,7 +1063,7 @@ namespace TS_SE_Tool
 
         public void buttonTruckRepair_Click(object sender, EventArgs e)
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
 
             if (SelectedUserCompanyTruck == null)
                 return;
@@ -988,7 +1094,7 @@ namespace TS_SE_Tool
             Button curbtn = sender as Button;
             byte bi = Convert.ToByte(curbtn.Name.Substring(19));
 
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
 
             if (SelectedUserCompanyTruck == null)
                 return;
@@ -1044,11 +1150,22 @@ namespace TS_SE_Tool
         //
         private void buttonUserTruckSelectCurrent_Click(object sender, EventArgs e)
         {
+            if (IsBusMode)
+            {
+                string currentBusId = GetCurrentBusId();
+                if (!String.IsNullOrEmpty(currentBusId))
+                    comboBoxUserTruckCompanyTrucks.SelectedValue = currentBusId;
+                return;
+            }
+
             comboBoxUserTruckCompanyTrucks.SelectedValue = SiiNunitData.Player.assigned_truck;
         }
 
         private void buttonUserTruckSwitchCurrent_Click(object sender, EventArgs e)
         {
+            if (IsBusMode || comboBoxUserTruckCompanyTrucks.SelectedItem == null)
+                return;
+
             var SelectedItem = ((DataRowView)comboBoxUserTruckCompanyTrucks.SelectedItem).Row;
 
             SiiNunitData.Player.assigned_truck = SelectedItem[0].ToString(); // Truck link
@@ -1074,7 +1191,7 @@ namespace TS_SE_Tool
 
         private void buttonUserTruckVehicleEditor_Click(object sender, EventArgs e)
         {
-            UserTruckDictionary.TryGetValue(comboBoxUserTruckCompanyTrucks.SelectedValue.ToString(), out UserCompanyTruckData SelectedUserCompanyTruck);
+            TryGetSelectedUserCompanyTruck(out UserCompanyTruckData SelectedUserCompanyTruck);
 
             if (SelectedUserCompanyTruck == null)
                 return;

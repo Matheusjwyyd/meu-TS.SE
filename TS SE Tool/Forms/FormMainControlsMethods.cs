@@ -341,6 +341,7 @@ namespace TS_SE_Tool
             if (SiiNunitData != null)
             {
                 RefreshProfileForCurrentMode();
+                FillUserCompanyTrucksList();
                 FillCoachPanelControlsRefined();
             }
 

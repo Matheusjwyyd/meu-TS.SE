@@ -42,6 +42,7 @@ namespace TS_SE_Tool
         {
             if (defaultProfileSkillLabels == null)
                 CacheProfileSkillPresentation();
+            LayoutProfileGroups();
 
             for (int i = 0; i < 6; i++)
             {
@@ -50,7 +51,23 @@ namespace TS_SE_Tool
                 if (label != null)
                 {
                     label.Text = busMode ? CoachSkillNames[i] : defaultProfileSkillLabels[i];
-                    label.Location = new Point(88, busMode ? 17 + 62 * i : 17 + 69 * i);
+                    if (busMode)
+                    {
+                        int busRowY = 17 + 62 * i;
+                        int busPipsX = GetBusProfilePipsX();
+                        label.AutoSize = false;
+                        label.Size = new Size(Math.Max(125, busPipsX - 92), 58);
+                        label.TextAlign = ContentAlignment.MiddleLeft;
+                        label.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+                        label.Location = new Point(80, busRowY);
+                    }
+                    else
+                    {
+                        label.AutoSize = true;
+                        label.TextAlign = ContentAlignment.TopLeft;
+                        label.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+                        label.Location = new Point(88, 17 + 69 * i);
+                    }
                 }
                 if (icon != null)
                 {
@@ -58,9 +75,7 @@ namespace TS_SE_Tool
                         icon.BackgroundImage.Dispose();
                     if (busMode)
                     {
-                        Image coachIcon = CreateCoachSkillIcon(i);
-                        icon.BackgroundImage = new Bitmap(coachIcon, 58, 58);
-                        coachIcon.Dispose();
+                        icon.BackgroundImage = CreateCoachProfileSkillIcon(i);
                         icon.Size = new Size(58, 58);
                         icon.Location = new Point(12, 17 + 62 * i);
                     }
@@ -76,7 +91,9 @@ namespace TS_SE_Tool
             for (int i = 0; i < ADRbuttonArray.Length; i++)
             {
                 ADRbuttonArray[i].Visible = !busMode || i < 3;
-                ADRbuttonArray[i].Location = new Point(88 + 54 * i, 31);
+                ADRbuttonArray[i].Location = busMode
+                    ? new Point(GetBusProfilePipsX() + 54 * i, 22)
+                    : new Point(88 + 54 * i, 31);
                 if (busMode)
                     ADRbuttonArray[i].Image = null;
                 else
@@ -87,12 +104,71 @@ namespace TS_SE_Tool
                 {
                     SkillButtonArray[i, j].Visible = !busMode || j < 3;
                     SkillButtonArray[i, j].Location = new Point(88 + 54 * j,
-                        busMode ? 31 + 62 * (i + 1) : 31 + 69 * (i + 1));
+                        busMode ? 22 + 62 * (i + 1) : 31 + 69 * (i + 1));
+                    if (busMode)
+                        SkillButtonArray[i, j].Left = GetBusProfilePipsX() + 54 * j;
                 }
 
             groupBoxProfileSkill.Text = busMode
                 ? "Habilidades do ônibus"
                 : defaultProfileSkillGroupTitle;
+            if (busMode)
+                UpdateCoachSkillPointsLabel();
+        }
+
+        private Image CreateCoachProfileSkillIcon(int skill)
+        {
+            int truckSkillIcon = new int[] { 1, 4, 2, 3, -1, 5 }[skill];
+            if (truckSkillIcon >= 0)
+                return new Bitmap(SkillImgS[truckSkillIcon], 58, 58);
+
+            Image heart = CreateCoachSkillIcon(4);
+            Bitmap result = new Bitmap(heart, 58, 58);
+            heart.Dispose();
+            return result;
+        }
+
+        private int GetBusProfilePipsX()
+        {
+            return Math.Max(236, groupBoxProfileSkill.ClientSize.Width - 168);
+        }
+
+        private void LayoutProfileGroups()
+        {
+            if (tabPageProfile == null || groupBoxProfileSkill == null || groupBoxProfileUserColorsShort == null)
+                return;
+
+            int skillWidth = IsBusMode
+                ? Math.Max(420, tabPageProfile.ClientSize.Width - groupBoxProfileUserColorsShort.Width - 24)
+                : 420;
+            groupBoxProfileSkill.Width = skillWidth;
+            groupBoxProfileUserColorsShort.Left = groupBoxProfileSkill.Right + 6;
+            if (IsBusMode)
+                LayoutBusProfileRows();
+        }
+
+        private void LayoutBusProfileRows()
+        {
+            int pipsX = GetBusProfilePipsX();
+            for (int skill = 0; skill < 6; skill++)
+            {
+                int rowY = 17 + 62 * skill;
+                Label label = groupBoxProfileSkill.Controls.Find("labelProfileSkill" + skill, false).FirstOrDefault() as Label;
+                Panel icon = groupBoxProfileSkill.Controls.Find("profileSkillsPanel" + skill, false).FirstOrDefault() as Panel;
+                if (label != null)
+                {
+                    label.Location = new Point(80, rowY);
+                    label.Size = new Size(Math.Max(125, pipsX - 92), 58);
+                }
+                if (icon != null)
+                    icon.Location = new Point(12, rowY);
+            }
+
+            for (int i = 0; i < ADRbuttonArray.Length; i++)
+                ADRbuttonArray[i].Location = new Point(pipsX + 54 * i, 22);
+            for (int row = 0; row < SkillButtonArray.GetLength(0); row++)
+                for (int point = 0; point < SkillButtonArray.GetLength(1); point++)
+                    SkillButtonArray[row, point].Location = new Point(pipsX + 54 * point, 22 + 62 * (row + 1));
         }
 
         internal void RefreshProfileForCurrentMode()
@@ -190,6 +266,9 @@ namespace TS_SE_Tool
                     SkillButtonArray[i, j] = Ppanel;
                 }
             }
+
+            tabPageProfile.Resize += (sender, args) => LayoutProfileGroups();
+            LayoutProfileGroups();
         }
 
         private void FillFormProfileControls()

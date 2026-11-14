@@ -438,7 +438,12 @@ namespace TS_SE_Tool
                 {
                     Save.Items.Vehicle coach = SiiNunitData.SiiNitems[bus] as Save.Items.Vehicle;
                     if (coach != null)
+                    {
                         UserBusDictionary[bus] = coach;
+                        UserCompanyTruckData busData = new UserCompanyTruckData();
+                        busData.TruckMainData = coach;
+                        UserBusEditorDictionary[bus] = busData;
+                    }
                 }
             }
 

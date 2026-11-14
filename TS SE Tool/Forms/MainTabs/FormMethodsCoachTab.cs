@@ -193,6 +193,32 @@ namespace TS_SE_Tool
             };
         }
 
+        private void MakeCoachFlowResponsive(FlowLayoutPanel flow)
+        {
+            flow.Resize += (sender, args) => ResizeCoachFlowContents(flow);
+            ResizeCoachFlowContents(flow);
+        }
+
+        private void ResizeCoachFlowContents(FlowLayoutPanel flow)
+        {
+            if (flow == null || flow.IsDisposed)
+                return;
+
+            int width = Math.Max(460, flow.ClientSize.Width - flow.Padding.Horizontal - 18);
+            foreach (Control child in flow.Controls)
+            {
+                if (child.Width != width)
+                    child.Width = width;
+
+                Panel heading = child as Panel;
+                if (heading == null)
+                    continue;
+                foreach (Control item in heading.Controls)
+                    if (item is Label && item.Height > 22)
+                        item.Width = Math.Max(320, width - 20);
+            }
+        }
+
         private TableLayoutPanel CreateCoachGrid(int columns, int rows)
         {
             TableLayoutPanel grid = new TableLayoutPanel
@@ -251,7 +277,7 @@ namespace TS_SE_Tool
                     if (accessory == null || accessory.accType != "basepart")
                         continue;
 
-                    string path = accessory.data_path.Trim('"');
+                    string path = (accessory.data_path ?? String.Empty).Trim('"');
                     int busIndex = path.IndexOf("/bus/", StringComparison.OrdinalIgnoreCase);
                     if (busIndex < 0)
                         continue;

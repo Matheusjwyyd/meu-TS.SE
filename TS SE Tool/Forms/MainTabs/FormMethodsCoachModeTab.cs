@@ -21,7 +21,6 @@ namespace TS_SE_Tool
         private Label labelCoachAvailableSkillPoints;
         private ProgressBar progressCoachExperience;
         private NumericUpDown[] coachCareerStatistics;
-        private Label labelCoachOdometer;
         private Button buttonCoachEditAccessories;
         private Panel[] coachPartProgressPanels;
         private Label[] coachPartNameLabels;
@@ -30,7 +29,12 @@ namespace TS_SE_Tool
         private Panel coachFuelProgressPanel;
         private Button buttonCoachRefuel;
         private bool refreshingCoachMode;
-        private Control panelCoachBusGarage;
+        private bool coachTruckLabelsCaptured;
+        private string defaultTruckGroupText;
+        private string defaultTruckDetailsText;
+        private string defaultTruckShareText;
+        private string defaultSelectCurrentText;
+        private string defaultSwitchCurrentText;
 
         private static readonly string[] CoachPartNames =
         {
@@ -39,24 +43,7 @@ namespace TS_SE_Tool
 
         private void CreateCoachModeControlsRefined()
         {
-            TabPage garageHost = new TabPage
-            {
-                Name = "coachGarageHost",
-                AutoScroll = true,
-                Padding = new Padding(14)
-            };
-            BuildCoachVehiclePage(garageHost);
-            panelCoachBusGarage = garageHost.Controls.Count > 0 ? garageHost.Controls[0] : null;
-            if (panelCoachBusGarage != null)
-            {
-                garageHost.Controls.Remove(panelCoachBusGarage);
-                panelCoachBusGarage.Name = "panelCoachBusGarage";
-                panelCoachBusGarage.Dock = DockStyle.Fill;
-            }
-
             BuildCoachStatisticsPage();
-            tabPageCoachMode.Controls.Add(panelCoachBusGarage);
-            panelCoachBusGarage.Visible = false;
         }
 
         private void BuildCoachStatisticsPage()
@@ -78,37 +65,40 @@ namespace TS_SE_Tool
                 AddCoachGridField(statisticsGrid, i % 2, i / 2, CoachStatisticNames[i], coachCareerStatistics[i]);
             }
             flow.Controls.Add(statisticsGroup);
+            MakeCoachFlowResponsive(flow);
         }
 
         private void ApplyCoachGarageMode(bool busMode)
         {
-            if (panelCoachBusGarage == null)
+            if (groupBoxUserTruckTruck == null || tableLayoutPanel9 == null)
                 return;
 
-            if (busMode)
+            if (!coachTruckLabelsCaptured)
             {
-                if (tableLayoutPanel9.Parent == tabPageTruck)
-                    tabPageTruck.Controls.Remove(tableLayoutPanel9);
-                if (panelCoachBusGarage.Parent != null)
-                    panelCoachBusGarage.Parent.Controls.Remove(panelCoachBusGarage);
-                if (panelCoachBusGarage.Parent != tabPageTruck)
-                    tabPageTruck.Controls.Add(panelCoachBusGarage);
-                panelCoachBusGarage.Dock = DockStyle.Fill;
-                panelCoachBusGarage.Visible = true;
-                UpdateCoachVehicleDisplay();
-                ModernTheme.ApplyNow(this);
+                defaultTruckGroupText = groupBoxUserTruckTruck.Text;
+                defaultTruckDetailsText = groupBoxUserTruckTruckDetails.Text;
+                defaultTruckShareText = groupBoxUserTruckShareTruckSettings.Text;
+                defaultSelectCurrentText = buttonUserTruckSelectCurrent.Text;
+                defaultSwitchCurrentText = buttonUserTruckSwitchCurrent.Text;
+                coachTruckLabelsCaptured = true;
             }
-            else
-            {
-                if (panelCoachBusGarage.Parent == tabPageTruck)
-                    tabPageTruck.Controls.Remove(panelCoachBusGarage);
-                if (panelCoachBusGarage.Parent != tabPageCoachMode)
-                    tabPageCoachMode.Controls.Add(panelCoachBusGarage);
-                panelCoachBusGarage.Visible = false;
-                if (tableLayoutPanel9.Parent != tabPageTruck)
-                    tabPageTruck.Controls.Add(tableLayoutPanel9);
-                tableLayoutPanel9.Dock = DockStyle.Fill;
-            }
+
+            groupBoxUserTruckTruck.Text = busMode ? "Ônibus" : defaultTruckGroupText;
+            groupBoxUserTruckTruckDetails.Text = busMode ? "Detalhes do ônibus" : defaultTruckDetailsText;
+            groupBoxUserTruckShareTruckSettings.Text = busMode
+                ? "Compartilhar configurações do ônibus"
+                : defaultTruckShareText;
+            buttonUserTruckSelectCurrent.Text = busMode ? "Selecionar ônibus atual" : defaultSelectCurrentText;
+            buttonUserTruckSwitchCurrent.Text = busMode
+                ? "Ônibus selecionado para edição"
+                : defaultSwitchCurrentText;
+            buttonUserTruckSwitchCurrent.Enabled = !busMode && comboBoxUserTruckCompanyTrucks.SelectedValue != null &&
+                comboBoxUserTruckCompanyTrucks.SelectedValue.ToString() != "null";
+
+            if (tableLayoutPanel9.Parent != tabPageTruck)
+                tabPageTruck.Controls.Add(tableLayoutPanel9);
+            tableLayoutPanel9.Dock = DockStyle.Fill;
+            tableLayoutPanel9.Visible = true;
         }
 
         private void BuildCoachCareerPage(TabPage page)
@@ -293,22 +283,56 @@ namespace TS_SE_Tool
 
         private void BuildCoachVehiclePage(TabPage page)
         {
-            FlowLayoutPanel flow = CreateCoachFlowPanel();
-            page.Controls.Add(flow);
-            flow.Controls.Add(CreateCoachHeading("Garagem de ônibus",
-                "Selecione um ônibus para editar seus componentes, reparar danos e abastecer."));
+            Panel rootPanel = new Panel
+            {
+                Name = "panelCoachGarageLayout",
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(8),
+                BackColor = ModernTheme.Canvas
+            };
+            page.Controls.Add(rootPanel);
 
-            GroupBox selectionGroup = CreateCoachGroup("Ônibus selecionado", 82);
+            TableLayoutPanel garageLayout = new TableLayoutPanel
+            {
+                Name = "tableLayoutCoachGarage",
+                Dock = DockStyle.Top,
+                ColumnCount = 1,
+                RowCount = 3,
+                Height = 476,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty
+            };
+            garageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            garageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78F));
+            garageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58F));
+            garageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 340F));
+            rootPanel.Controls.Add(garageLayout);
+
+            GroupBox selectionGroup = CreateCoachGroup("Ônibus selecionado", 74);
+            selectionGroup.Dock = DockStyle.Fill;
+            selectionGroup.Margin = Padding.Empty;
             TableLayoutPanel selectionLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 2,
+                ColumnCount = 3,
                 RowCount = 1,
                 Padding = new Padding(8, 4, 8, 4)
             };
-            selectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 57F));
-            selectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 43F));
+            selectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 56F));
+            selectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 46F));
+            selectionLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54F));
             selectionGroup.Controls.Add(selectionLayout);
+
+            PictureBox coachIcon = new PictureBox
+            {
+                Name = "pictureCoachVehicleIcon",
+                Dock = DockStyle.Fill,
+                Image = CreateCoachVehicleIcon(),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Margin = new Padding(2)
+            };
+            selectionLayout.Controls.Add(coachIcon, 0, 0);
 
             comboBoxCoachVehicle = new ComboBox
             {
@@ -318,7 +342,7 @@ namespace TS_SE_Tool
                 FormattingEnabled = true
             };
             comboBoxCoachVehicle.SelectedIndexChanged += CoachVehicleSelectionChangedRefined;
-            selectionLayout.Controls.Add(comboBoxCoachVehicle, 0, 0);
+            selectionLayout.Controls.Add(comboBoxCoachVehicle, 1, 0);
             labelCoachVehicleModel = new Label
             {
                 Name = "labelCoachVehicleModel",
@@ -327,32 +351,35 @@ namespace TS_SE_Tool
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true
             };
-            selectionLayout.Controls.Add(labelCoachVehicleModel, 1, 0);
-            flow.Controls.Add(selectionGroup);
+            selectionLayout.Controls.Add(labelCoachVehicleModel, 2, 0);
+            garageLayout.Controls.Add(selectionGroup, 0, 0);
 
             FlowLayoutPanel actions = new FlowLayoutPanel
             {
-                AutoSize = true,
+                Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Margin = new Padding(0, 0, 0, 8)
+                Margin = Padding.Empty,
+                Padding = new Padding(0, 3, 0, 3)
             };
-            buttonCoachRepairAll = CreateCoachImageButton("buttonCoachRepairWear", RepairImg, "Reparar o ônibus inteiro");
+            buttonCoachRepairAll = CreateCoachImageButton("buttonCoachRepairWear", RepairImg, "Reparar o ônibus inteiro", 54);
             buttonCoachRepairAll.Click += CoachRepairAllClick;
             buttonCoachRepairAll.EnabledChanged += CoachActionButtonEnabledChanged;
             actions.Controls.Add(buttonCoachRepairAll);
 
-            buttonCoachRefuel = CreateCoachImageButton("buttonCoachRefuel", RefuelImg, "Abastecer o ônibus");
+            buttonCoachRefuel = CreateCoachImageButton("buttonCoachRefuel", RefuelImg, "Abastecer o ônibus", 54);
             buttonCoachRefuel.Click += CoachRefuelClick;
             buttonCoachRefuel.EnabledChanged += CoachActionButtonEnabledChanged;
             actions.Controls.Add(buttonCoachRefuel);
 
-            buttonCoachEditAccessories = CreateCoachImageButton("buttonCoachEditAccessories", CustomizeImg, "Editar componentes do ônibus");
+            buttonCoachEditAccessories = CreateCoachImageButton("buttonCoachEditAccessories", CustomizeImg, "Editar componentes do ônibus", 54);
             buttonCoachEditAccessories.Click += CoachEditAccessoriesClickRefined;
             actions.Controls.Add(buttonCoachEditAccessories);
-            flow.Controls.Add(actions);
+            garageLayout.Controls.Add(actions, 0, 1);
 
-            GroupBox detailsGroup = CreateCoachGroup("Detalhes", 384);
+            GroupBox detailsGroup = CreateCoachGroup("Detalhes e condição", 328);
+            detailsGroup.Dock = DockStyle.Fill;
+            detailsGroup.Margin = Padding.Empty;
             TableLayoutPanel detailsLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -425,7 +452,7 @@ namespace TS_SE_Tool
                 coachPartProgressPanels[i] = progress;
                 partInfo.Controls.Add(progress, 0, 1);
 
-                Button repairPart = CreateCoachImageButton("buttonCoachPartRepair" + i, RepairImg, "Reparar " + CoachPartNames[i]);
+                Button repairPart = CreateCoachImageButton("buttonCoachPartRepair" + i, RepairImg, "Reparar " + CoachPartNames[i], 40);
                 repairPart.Tag = i;
                 repairPart.Dock = DockStyle.Fill;
                 repairPart.Click += CoachRepairPartClick;
@@ -461,16 +488,39 @@ namespace TS_SE_Tool
                 Margin = new Padding(4, 0, 4, 2)
             };
             fuelLayout.Controls.Add(coachFuelProgressPanel, 0, 1);
-            flow.Controls.Add(detailsGroup);
+            garageLayout.Controls.Add(detailsGroup, 0, 2);
+        }
 
-            labelCoachOdometer = new Label
+        private Bitmap CreateCoachVehicleIcon()
+        {
+            Bitmap bitmap = new Bitmap(56, 48);
+            using (Graphics g = Graphics.FromImage(bitmap))
+            using (Pen outline = new Pen(ModernTheme.PrimaryGray, 2.2F))
+            using (SolidBrush body = new SolidBrush(Color.FromArgb(222, 227, 232)))
+            using (SolidBrush window = new SolidBrush(Color.FromArgb(119, 143, 163)))
+            using (SolidBrush wheel = new SolidBrush(ModernTheme.NavyLight))
+            using (GraphicsPath shape = new GraphicsPath())
             {
-                Name = "labelCoachOdometer",
-                Text = "Odômetro: —",
-                AutoSize = true,
-                Margin = new Padding(2, 0, 0, 8)
-            };
-            flow.Controls.Add(labelCoachOdometer);
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                shape.AddArc(5, 10, 12, 12, 180, 90);
+                shape.AddLine(11, 10, 43, 10);
+                shape.AddArc(39, 10, 12, 12, 270, 90);
+                shape.AddLine(51, 16, 51, 32);
+                shape.AddArc(43, 26, 12, 12, 0, 90);
+                shape.AddLine(49, 38, 11, 38);
+                shape.AddArc(5, 26, 12, 12, 90, 90);
+                shape.CloseFigure();
+                g.FillPath(body, shape);
+                g.DrawPath(outline, shape);
+                g.FillRectangle(window, 10, 14, 8, 9);
+                g.FillRectangle(window, 21, 14, 8, 9);
+                g.FillRectangle(window, 32, 14, 8, 9);
+                g.FillRectangle(window, 43, 14, 5, 9);
+                g.FillEllipse(wheel, 12, 32, 9, 9);
+                g.FillEllipse(wheel, 38, 32, 9, 9);
+                g.DrawLine(outline, 8, 27, 48, 27);
+            }
+            return bitmap;
         }
 
         private Button CreateCoachLevelButton(string text, int width, Action action)
@@ -487,12 +537,12 @@ namespace TS_SE_Tool
             return button;
         }
 
-        private Button CreateCoachImageButton(string name, Image image, string tooltip)
+        private Button CreateCoachImageButton(string name, Image image, string tooltip, int size = 46)
         {
             Button button = new Button
             {
                 Name = name,
-                Size = new Size(46, 46),
+                Size = new Size(size, size),
                 FlatStyle = FlatStyle.Flat,
                 BackgroundImage = image,
                 BackgroundImageLayout = ImageLayout.Zoom,
@@ -591,19 +641,7 @@ namespace TS_SE_Tool
             };
             for (int i = 0; i < coachCareerStatistics.Length; i++)
                 SetCoachNumber(coachCareerStatistics[i], values[i]);
-
-            List<CoachVehicleOption> coaches = UserBusDictionary
-                .OrderBy(item => item.Key, StringComparer.Ordinal)
-                .Select((item, index) => new CoachVehicleOption(item.Key,
-                    "Ônibus " + (index + 1) + " — " + GetCoachModelName(item.Key, item.Value)))
-                .ToList();
-            comboBoxCoachVehicle.DataSource = null;
-            comboBoxCoachVehicle.DisplayMember = "Name";
-            comboBoxCoachVehicle.ValueMember = "Id";
-            comboBoxCoachVehicle.DataSource = coaches;
             refreshingCoachMode = false;
-
-            UpdateCoachVehicleDisplay();
             UpdateCoachModeGameAvailability();
         }
 
@@ -613,10 +651,8 @@ namespace TS_SE_Tool
             if (coachCareerStatistics != null)
                 foreach (NumericUpDown input in coachCareerStatistics)
                     input.Value = 0;
-            if (comboBoxCoachVehicle != null)
-                comboBoxCoachVehicle.DataSource = null;
             refreshingCoachMode = false;
-            UpdateCoachVehicleDisplay();
+            UpdateCoachModeGameAvailability();
         }
 
         private static void SetCoachNumber(NumericUpDown input, int value)
@@ -768,19 +804,21 @@ namespace TS_SE_Tool
 
         private void UpdateCoachVehicleDisplay()
         {
+            if (labelCoachVehicleModel == null || comboBoxCoachVehicle == null)
+                return;
+
             Vehicle coach = GetSelectedCoach();
             bool available = coach != null && SiiNunitData != null && GameType == "ETS2";
             if (available)
             {
-                labelCoachVehicleModel.Text = GetCoachModelName(comboBoxCoachVehicle.SelectedValue.ToString(), coach);
-                labelCoachOdometer.Text = "Odômetro: " + coach.odometer.ToString("N0") + " km";
+                labelCoachVehicleModel.Text = GetCoachModelName(comboBoxCoachVehicle.SelectedValue.ToString(), coach) +
+                    Environment.NewLine + "Odômetro: " + coach.odometer.ToString("N0") + " km";
             }
             else
             {
                 labelCoachVehicleModel.Text = UserBusDictionary == null || UserBusDictionary.Count == 0
                     ? "Nenhum ônibus próprio encontrado neste save."
                     : "Selecione um ônibus para editar.";
-                labelCoachOdometer.Text = "Odômetro: —";
             }
 
             if (coachPartRepairButtons != null)

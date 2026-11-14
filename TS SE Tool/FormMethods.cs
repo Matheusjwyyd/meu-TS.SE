@@ -407,6 +407,7 @@ namespace TS_SE_Tool
             GaragesList = new List<Garages>();
             UserTruckDictionary = new Dictionary<string, UserCompanyTruckData>();
             UserBusDictionary = new Dictionary<string, Save.Items.Vehicle>();
+            UserBusEditorDictionary = new Dictionary<string, UserCompanyTruckData>();
             UserDriverDictionary = new Dictionary<string, UserCompanyDriverData>();
             
             UserTrailerDictionary = new Dictionary<string, UserCompanyTrailerData>();

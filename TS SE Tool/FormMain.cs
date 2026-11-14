@@ -141,6 +141,7 @@ namespace TS_SE_Tool
         public static Dictionary<string, string> CitiesLngDict;//, CustomStringsDict;
         public Dictionary<string, UserCompanyTruckData> UserTruckDictionary; //+
         internal Dictionary<string, Save.Items.Vehicle> UserBusDictionary;
+        internal Dictionary<string, UserCompanyTruckData> UserBusEditorDictionary;
 
         public Dictionary<string, UserCompanyDriverData> UserDriverDictionary; //+
         private Dictionary<string, UserCompanyTrailerData> UserTrailerDictionary; //+
