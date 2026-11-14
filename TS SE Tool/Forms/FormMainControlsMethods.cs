@@ -307,6 +307,7 @@ namespace TS_SE_Tool
             }
 
             GameType = _game;
+            UpdateCoachModeGameAvailability();
         }
 
         private void buttonMainAddCustomFolder_Click(object sender, EventArgs e)

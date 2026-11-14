@@ -380,6 +380,11 @@ namespace TS_SE_Tool.Save.Items
                         return new Bus_job_Log(_input);
                     }
 
+                case "bus_job_log_entry":
+                    {
+                        return new Bus_job_Log_Entry(_input);
+                    }
+
                 //v1.49
 
                 case "used_vehicle_assortment":
@@ -628,6 +633,23 @@ namespace TS_SE_Tool.Save.Items
                 foreach (string accNameless in Vehicle.accessories.Where(x => x != null && x != "null"))
                 {
                     returnSB.AppendLine(SiiNitems[accNameless].PrintOut(_version, accNameless));
+                }
+            }
+
+            //=== Owned coaches (ETS2 Coach mode)
+
+            foreach (string item in Player.buses.Where(x => x != null && x != "null"))
+            {
+                Vehicle coach = SiiNitems[item] as Vehicle;
+                if (coach == null)
+                    continue;
+
+                returnSB.AppendLine(coach.PrintOut(_version, item));
+
+                foreach (string accNameless in coach.accessories.Where(x => x != null && x != "null"))
+                {
+                    if (SiiNitems.ContainsKey(accNameless))
+                        returnSB.AppendLine(SiiNitems[accNameless].PrintOut(_version, accNameless));
                 }
             }
 

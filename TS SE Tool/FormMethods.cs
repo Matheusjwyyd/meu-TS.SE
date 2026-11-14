@@ -405,6 +405,7 @@ namespace TS_SE_Tool
 
             GaragesList = new List<Garages>();
             UserTruckDictionary = new Dictionary<string, UserCompanyTruckData>();
+            UserBusDictionary = new Dictionary<string, Save.Items.Vehicle>();
             UserDriverDictionary = new Dictionary<string, UserCompanyDriverData>();
             
             UserTrailerDictionary = new Dictionary<string, UserCompanyTrailerData>();
@@ -634,6 +635,9 @@ namespace TS_SE_Tool
             //=== Truck
             comboBoxUserTruckCompanyTrucks.DataSource = null;
 
+            //=== Coach mode
+            ClearCoachPanelControls();
+
             //=== Trailer
             comboBoxUserTrailerCompanyTrailers.DataSource = null;
 
@@ -670,6 +674,7 @@ namespace TS_SE_Tool
             FillFormProfileControls();          //Profile
             FillFormCompanyControls();          //Company
             FillUserCompanyTrucksList();        //Truck
+            FillCoachPanelControls();           //ETS2 Coach mode
             FillUserCompanyTrailerList();       //Trailer
             FillFormFreightMarketControls();    //FreightMarket
             FillFormCargoOffersControls();      //CargoMarket

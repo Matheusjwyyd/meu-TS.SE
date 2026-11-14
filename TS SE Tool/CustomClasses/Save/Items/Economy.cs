@@ -183,6 +183,12 @@ namespace TS_SE_Tool.Save.Items
         internal string bus_job_log { get; set; } = "";
 
         internal int bus_experience_points { get; set; } = 0;
+        internal int long_duty { get; set; } = 0;
+        internal int tight_schedule { get; set; } = 0;
+        internal int satisfaction_decrease { get; set; } = 0;
+        internal int low_acceleration { get; set; } = 0;
+        internal int satisfaction_increase { get; set; } = 0;
+        internal int ecodriving { get; set; } = 0;
         internal int bus_total_distance { get; set; } = 0;
         internal int bus_finished_job_count { get; set; } = 0;
         internal int bus_cancelled_job_count { get; set; } = 0;
@@ -1060,6 +1066,42 @@ namespace TS_SE_Tool.Save.Items
                                 break;
                             }
 
+                        case "long_duty":
+                            {
+                                long_duty = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case "tight_schedule":
+                            {
+                                tight_schedule = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case "satisfaction_decrease":
+                            {
+                                satisfaction_decrease = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case "low_acceleration":
+                            {
+                                low_acceleration = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case "satisfaction_increase":
+                            {
+                                satisfaction_increase = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case "ecodriving":
+                            {
+                                ecodriving = int.Parse(dataLine);
+                                break;
+                            }
+
                         case "bus_total_distance":
                             {
                                 bus_total_distance = int.Parse(dataLine);
@@ -1399,6 +1441,13 @@ namespace TS_SE_Tool.Save.Items
             returnSB.AppendLine(" bus_job_log: " + bus_job_log);
 
             returnSB.AppendLine(" bus_experience_points: " + bus_experience_points.ToString());
+
+            returnSB.AppendLine(" long_duty: " + long_duty.ToString());
+            returnSB.AppendLine(" tight_schedule: " + tight_schedule.ToString());
+            returnSB.AppendLine(" satisfaction_decrease: " + satisfaction_decrease.ToString());
+            returnSB.AppendLine(" low_acceleration: " + low_acceleration.ToString());
+            returnSB.AppendLine(" satisfaction_increase: " + satisfaction_increase.ToString());
+            returnSB.AppendLine(" ecodriving: " + ecodriving.ToString());
 
             returnSB.AppendLine(" bus_total_distance: " + bus_total_distance.ToString());
 

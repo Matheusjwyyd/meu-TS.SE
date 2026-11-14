@@ -432,6 +432,16 @@ namespace TS_SE_Tool
                 UserTruckDictionary[trck].TruckMainData = SiiNunitData.SiiNitems[trck];
             }
 
+            foreach (string bus in SiiNunitData.Player.buses.Where(x => !String.IsNullOrEmpty(x) && x != "null").Distinct())
+            {
+                if (SiiNunitData.SiiNitems.ContainsKey(bus))
+                {
+                    Save.Items.Vehicle coach = SiiNunitData.SiiNitems[bus] as Save.Items.Vehicle;
+                    if (coach != null)
+                        UserBusDictionary[bus] = coach;
+                }
+            }
+
             //
             foreach (string trlr in SiiNunitData.Player.trailers)
             {

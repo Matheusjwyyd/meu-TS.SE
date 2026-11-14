@@ -74,6 +74,9 @@ namespace TS_SE_Tool.Save.Items
 
         internal List<string> trucks { get; set; } = new List<string>();
 
+        // ETS2 Coach mode stores owned coaches separately from trucks.
+        internal List<string> buses { get; set; } = new List<string>();
+
         internal List<string> truck_profit_logs { get; set; } = new List<string>();
 
         internal List<string> drivers { get; set; } = new List<string>();
@@ -339,6 +342,18 @@ namespace TS_SE_Tool.Save.Items
                                 break;
                             }
 
+                        case "buses":
+                            {
+                                buses.Capacity = int.Parse(dataLine);
+                                break;
+                            }
+
+                        case var s when s.StartsWith("buses["):
+                            {
+                                buses.Add(dataLine);
+                                break;
+                            }
+
                         case "truck_profit_logs":
                             {
                                 truck_profit_logs.Capacity = int.Parse(dataLine);
@@ -494,6 +509,10 @@ namespace TS_SE_Tool.Save.Items
             returnSB.AppendLine(" trucks: " + trucks.Count);
             for (int i = 0; i < trucks.Count; i++)
                 returnSB.AppendLine(" trucks[" + i + "]: " + trucks[i]);
+
+            returnSB.AppendLine(" buses: " + buses.Count);
+            for (int i = 0; i < buses.Count; i++)
+                returnSB.AppendLine(" buses[" + i + "]: " + buses[i]);
 
             returnSB.AppendLine(" truck_profit_logs: " + truck_profit_logs.Count);
             for (int i = 0; i < truck_profit_logs.Count; i++)

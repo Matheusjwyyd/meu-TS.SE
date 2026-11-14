@@ -131,6 +131,7 @@ namespace TS_SE_Tool
 
         public static Dictionary<string, string> CitiesLngDict;//, CustomStringsDict;
         public Dictionary<string, UserCompanyTruckData> UserTruckDictionary; //+
+        internal Dictionary<string, Save.Items.Vehicle> UserBusDictionary;
 
         public Dictionary<string, UserCompanyDriverData> UserDriverDictionary; //+
         private Dictionary<string, UserCompanyTrailerData> UserTrailerDictionary; //+
@@ -185,6 +186,7 @@ namespace TS_SE_Tool
         {
             IO_Utilities.LogWriter("Initializing form...");
             InitializeComponent();
+            AddCoachModeTab();
             ModernTheme.ConfigureMainWindow(this, tableLayoutPanel15);
             IO_Utilities.LogWriter("Form initialized.");
 
@@ -216,6 +218,7 @@ namespace TS_SE_Tool
             CreateCompanyPanelControls();
             Graphics_TSSET.CreateProgressBarBitmap();
             CreateTruckPanelControls();
+            CreateCoachModeControls();
             CreateTrailerPanelControls();
             IO_Utilities.LogWriter("Done.");
 
