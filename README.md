@@ -6,6 +6,7 @@ O projeto original foi criado por LIPtoH e publicado sob a licença Apache 2.0. 
 
 ## Recursos
 
+- Modo ETS Bus para ajustar nível e habilidades do perfil, estatísticas da carreira e ônibus do save.
 - Selecionar ETS2 ou ATS, perfis e saves locais; adicionar pastas personalizadas.
 - Editar nome, nível, experiência, habilidades, dinheiro, cores e outras opções do perfil.
 - Renomear e clonar perfis; importar e exportar configurações de perfil.
@@ -33,6 +34,8 @@ O diretório `dist` contém o executável e os recursos necessários (`img`, `la
 ```
 
 O script restaura os pacotes NuGet, usa o compilador Roslyn, compila a solução e atualiza `dist\MeuSaveEditor.exe`. Requer Windows, MSBuild e referências do .NET Framework 4.7.2; baixa o NuGet CLI oficial caso não esteja instalado. Ele usa os recursos de `dist` como fonte quando a pasta original não estiver ao lado do projeto.
+
+Para criar o instalador e o pacote portátil da versão compilada, execute `powershell -ExecutionPolicy Bypass -File .\installer\Build-Installer.ps1`. O instalador instala por usuário, cria atalhos e registra a desinstalação em Configurações do Windows. O tutorial está em [TUTORIAL_INSTALACAO.md](./TUTORIAL_INSTALACAO.md).
 
 As verificações automáticas de atualização foram desativadas porque não há servidor de atualização para esta cópia pessoal. A consulta manual mostra a versão upstream, mas não instala outro executável.
 
