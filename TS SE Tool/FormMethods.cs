@@ -476,12 +476,15 @@ namespace TS_SE_Tool
         private void AddImagesToControls()
         {
             //Main menu
+            menuStripMain.ImageScalingSize = new Size(18, 18);
+            toolStripMenuItemProgram.Image = ModernBrandArtwork.CreateMenuIcon(0, 18);
+            toolStripMenuItemHelp.Image = ModernBrandArtwork.CreateMenuIcon(2, 18);
             //Program
             toolStripMenuItemProgram.DropDownItems["toolStripMenuItemProgramSettings"].Image = ProgUIImgsDict["ProgramSettings"];
             toolStripMenuItemProgram.DropDownItems["toolStripMenuItemSettings"].Image = ProgUIImgsDict["Settings"];
             toolStripMenuItemProgram.DropDownItems["toolStripMenuItemExit"].Image = ProgUIImgsDict["Cross"];
             //Language
-            menuStripMain.Items["toolStripMenuItemLanguage"].Image = ProgUIImgsDict["Language"];
+            menuStripMain.Items["toolStripMenuItemLanguage"].Image = ModernBrandArtwork.CreateMenuIcon(1, 18);
             //Help
             toolStripMenuItemHelp.DropDownItems["toolStripMenuItemAbout"].Image = ProgUIImgsDict["Info"];
             toolStripMenuItemHelp.DropDownItems["toolStripMenuItemTutorial"].Image = ProgUIImgsDict["Question"];
@@ -499,9 +502,18 @@ namespace TS_SE_Tool
             radioButtonMainGameSwitchETS.Image = GameIconeImg[0];
             radioButtonMainGameSwitchATS.Image = GameIconeImg[1];
             //
-            buttonProfilesAndSavesRefreshAll.BackgroundImage = ProgUIImgsDict["Reload"];
-            buttonProfilesAndSavesEditProfile.BackgroundImage = ProgUIImgsDict["EditList"];
-            buttonProfilesAndSavesRestoreBackup.BackgroundImage = ProgUIImgsDict["Extract"];
+            buttonProfilesAndSavesRefreshAll.BackgroundImage = null;
+            buttonProfilesAndSavesEditProfile.BackgroundImage = null;
+            buttonProfilesAndSavesRestoreBackup.BackgroundImage = null;
+            buttonProfilesAndSavesRefreshAll.Image = ModernBrandArtwork.CreateActionIcon(0, 18);
+            buttonProfilesAndSavesEditProfile.Image = ModernBrandArtwork.CreateActionIcon(1, 18);
+            buttonProfilesAndSavesRestoreBackup.Image = ModernBrandArtwork.CreateActionIcon(2, 18);
+            buttonProfilesAndSavesRefreshAll.ImageAlign = ContentAlignment.MiddleCenter;
+            buttonProfilesAndSavesEditProfile.ImageAlign = ContentAlignment.MiddleCenter;
+            buttonProfilesAndSavesRestoreBackup.ImageAlign = ContentAlignment.MiddleCenter;
+            buttonProfilesAndSavesRefreshAll.UseVisualStyleBackColor = false;
+            buttonProfilesAndSavesEditProfile.UseVisualStyleBackColor = false;
+            buttonProfilesAndSavesRestoreBackup.UseVisualStyleBackColor = false;
 
             //Tab pages
             tabControlMain.ImageList = TabpagesImages;

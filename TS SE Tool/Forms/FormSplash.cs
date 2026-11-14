@@ -43,6 +43,7 @@ namespace TS_SE_Tool
         public FormSplash()
         {
             InitializeComponent();
+            ModernTheme.ConfigureSplash(this, tableLayoutPanel2);
 
             MainForm.HelpTranslateFormMethod(this);
 

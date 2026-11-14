@@ -185,6 +185,7 @@ namespace TS_SE_Tool
         {
             IO_Utilities.LogWriter("Initializing form...");
             InitializeComponent();
+            ModernTheme.ConfigureMainWindow(this, tableLayoutPanel15);
             IO_Utilities.LogWriter("Form initialized.");
 
             //Program
@@ -228,7 +229,9 @@ namespace TS_SE_Tool
             //Language
             IO_Utilities.LogWriter("Loading translation...");
             GetTranslationFiles();
+            IO_Utilities.LogWriter("Translation menu loaded.");
             ChangeLanguage();
+            ModernTheme.RefreshMainNavigation(this);
             IO_Utilities.LogWriter("Done.");
 
             //Non program task
@@ -240,6 +243,8 @@ namespace TS_SE_Tool
         private void FormMain_Shown(object sender, EventArgs e)
         {
             IO_Utilities.LogWriter("Opening form...");
+            ModernTheme.ApplyNow(this);
+            IO_Utilities.LogWriter("Modern theme applied.");
             try
             {
                 IO_Utilities.LogWriter("Done.");

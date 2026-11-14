@@ -289,14 +289,13 @@ namespace TS_SE_Tool
 
             //=== Main icons
 
-            imgPaths = new string[] { @"img\UI\unknown.dds" };
-            MainIcons = Graphics_TSSET.ddsImgLoader(imgPaths, 95, 95).images;
+            MainIcons = new Image[] { ModernBrandArtwork.CreateBrandMark() };
 
             //=== Tab page icons
 
-            imgPaths = new string[] { @"img\UI\MainTabs\profiles.dds", @"img\UI\MainTabs\comp_man.dds", @"img\UI\MainTabs\truck_service.dds", @"img\UI\MainTabs\trailers.dds",
-                                      @"img\UI\MainTabs\company_job.dds", @"img\UI\MainTabs\cargo_market.dds", @"img\UI\MainTabs\maps.dds" };
-            TabpagesImages.Images.AddRange(Graphics_TSSET.ddsImgLoader(imgPaths, 64, 64, 64, 0).images);
+            TabpagesImages.ImageSize = new Size(24, 24);
+            TabpagesImages.ColorDepth = ColorDepth.Depth32Bit;
+            TabpagesImages.Images.AddRange(ModernBrandArtwork.CreateMainTabIcons(24));
 
             //=== Profile
 

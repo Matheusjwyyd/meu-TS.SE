@@ -58,6 +58,7 @@ namespace TS_SE_Tool
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            ModernTheme.Install();
             Application.Run(new FormMain());
             IO_Utilities.LogWriter("--- END ---");
         }

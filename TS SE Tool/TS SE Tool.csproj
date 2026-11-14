@@ -56,7 +56,7 @@
     <StartupObject>TS_SE_Tool.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>Resources\MainIco.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\MeuSaveEditor.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ErikEJ.SqlCe40, Version=2.1.6.14, Culture=neutral, PublicKeyToken=03b0b5a60fec3719, processorArchitecture=MSIL">
@@ -347,6 +347,8 @@
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="ModernBrandArtwork.cs" />
+    <Compile Include="ModernTheme.cs" />
     <Compile Include="FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
@@ -479,6 +481,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\MainIco.ico" />
+    <None Include="Resources\MeuSaveEditor.ico" />
+    <None Include="Resources\MeuSaveEditor.svg" />
+    <None Include="Resources\MeuSaveEditorBrand.png" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="SII_Decrypt.dll">
