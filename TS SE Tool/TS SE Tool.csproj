@@ -287,6 +287,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\MainTabs\FormMethodsCoachTab.cs" />
+    <Compile Include="Forms\MainTabs\FormMethodsCoachModeTab.cs" />
     <Compile Include="Forms\FormAboutBox.cs">
       <SubType>Form</SubType>
     </Compile>

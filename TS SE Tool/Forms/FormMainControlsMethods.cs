@@ -198,6 +198,8 @@ namespace TS_SE_Tool
         {
             radioButtonMainGameSwitchETS.Enabled = _state;
             radioButtonMainGameSwitchATS.Enabled = _state;
+            if (radioButtonMainGameSwitchBus != null)
+                radioButtonMainGameSwitchBus.Enabled = _state;
 
             checkBoxProfilesAndSavesProfileBackups.Enabled = _state;
             buttonProfilesAndSavesRefreshAll.Enabled = _state;
@@ -279,23 +281,46 @@ namespace TS_SE_Tool
         //Game select
         public void ToggleGame_Click(object sender, EventArgs e)
         {
-            if (radioButtonMainGameSwitchETS.Checked)
-                ToggleGame("ETS2");
-            else
-                ToggleGame("ATS");
+            if (suppressModeEvents)
+                return;
 
-            FillRootFoldersPaths(); // Populate with appropriate root folders
+            RadioButton selectedMode = sender as RadioButton;
+            if (selectedMode == null || !selectedMode.Checked)
+                return;
+
+            string selectedGame = selectedMode == radioButtonMainGameSwitchATS ? "ATS" : "ETS2";
+            string selectedEditingMode = selectedMode == radioButtonMainGameSwitchBus ? "BUS" : "TRUCK";
+            ChangeProgramMode(selectedGame, selectedEditingMode);
         }
 
         public void ToggleGame(string _game)
         {
-            if (tempSavefileInMemory != null)
+            ChangeProgramMode(_game, "TRUCK");
+        }
+
+        private void ChangeProgramMode(string newGame, string newEditingMode)
+        {
+            bool gameChanged = GameType != newGame;
+            bool modeChanged = EditingMode != newEditingMode;
+            if (!gameChanged && !modeChanged)
+            {
+                SetModeSelectorChecks();
+                return;
+            }
+
+            // ETS 2 and ETS Bus edit the same profile/save. Changing between those
+            // views keeps the loaded save in memory; switching games discards it only
+            // after the existing confirmation.
+            if (gameChanged && tempSavefileInMemory != null)
             {
                 DialogResult result = MessageBox.Show("Savefile not saved." + Environment.NewLine + "Do you want to discard changes and switch game type?", "Switching game", 
                     MessageBoxButtons.YesNo);
 
                 if (result == DialogResult.No)
+                {
+                    SetModeSelectorChecks();
                     return;
+                }
                 else
                 {
                     buttonMainDecryptSave.Enabled = true;
@@ -306,8 +331,21 @@ namespace TS_SE_Tool
                 }
             }
 
-            GameType = _game;
+            GameType = newGame;
+            EditingMode = newEditingMode;
+            SetModeSelectorChecks();
             UpdateCoachModeGameAvailability();
+            UpdateNavigationForMode();
+            SetProfileEditingMode(IsBusMode);
+
+            if (SiiNunitData != null)
+            {
+                RefreshProfileForCurrentMode();
+                FillCoachPanelControlsRefined();
+            }
+
+            if (gameChanged)
+                FillRootFoldersPaths();
         }
 
         private void buttonMainAddCustomFolder_Click(object sender, EventArgs e)
@@ -426,7 +464,7 @@ namespace TS_SE_Tool
             ToggleMainControlsAccess(true);
             buttonMainDecryptSave.Enabled = false;
 
-            ToggleGame(GameType);
+            ChangeProgramMode(GameType, EditingMode);
 
             //GC
             GC.Collect();

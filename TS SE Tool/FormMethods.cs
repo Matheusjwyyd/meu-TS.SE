@@ -192,6 +192,7 @@ namespace TS_SE_Tool
                 ProfileATS = @"\American Truck Simulator";
                 dictionaryProfiles = new Dictionary<string, string> { { "ETS2", ProfileETS2 }, { "ATS", ProfileATS } };
                 GameType = "ETS2";
+                EditingMode = "TRUCK";
 
                 LicensePlateWidth = new Dictionary<string, byte> { { "ETS2", 128 }, { "ATS", 64 } };
 
@@ -636,7 +637,7 @@ namespace TS_SE_Tool
             comboBoxUserTruckCompanyTrucks.DataSource = null;
 
             //=== Coach mode
-            ClearCoachPanelControls();
+            ClearCoachPanelControlsRefined();
 
             //=== Trailer
             comboBoxUserTrailerCompanyTrailers.DataSource = null;
@@ -674,7 +675,7 @@ namespace TS_SE_Tool
             FillFormProfileControls();          //Profile
             FillFormCompanyControls();          //Company
             FillUserCompanyTrucksList();        //Truck
-            FillCoachPanelControls();           //ETS2 Coach mode
+            FillCoachPanelControlsRefined();    //ETS2 Coach mode
             FillUserCompanyTrailerList();       //Trailer
             FillFormFreightMarketControls();    //FreightMarket
             FillFormCargoOffersControls();      //CargoMarket

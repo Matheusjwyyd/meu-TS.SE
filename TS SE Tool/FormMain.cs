@@ -51,6 +51,15 @@ namespace TS_SE_Tool
         public bool FileDecoded;  //+
 
         internal string GameType;//Program
+        internal string EditingMode = "TRUCK";
+        private RadioButton radioButtonMainGameSwitchBus;
+        private bool suppressModeEvents;
+        private string defaultTruckTabText;
+
+        internal bool IsBusMode
+        {
+            get { return GameType == "ETS2" && EditingMode == "BUS"; }
+        }
 
         private string LoopStartCity;//Program
         private string LoopStartCompany;//Program
@@ -186,6 +195,7 @@ namespace TS_SE_Tool
         {
             IO_Utilities.LogWriter("Initializing form...");
             InitializeComponent();
+            ConfigureModeSelector();
             AddCoachModeTab();
             ModernTheme.ConfigureMainWindow(this, tableLayoutPanel15);
             IO_Utilities.LogWriter("Form initialized.");
@@ -200,6 +210,7 @@ namespace TS_SE_Tool
             this.Text += " [ " + AssemblyData.AssemblyVersion + " ]";
 
             SetDefaultValues(true);
+            SetModeSelectorChecks();
             IO_Utilities.LogWriter("Loading config...");
             ProgSettingsV.LoadConfigFromFile();
             CheckTssetFoldersExist();
@@ -218,7 +229,7 @@ namespace TS_SE_Tool
             CreateCompanyPanelControls();
             Graphics_TSSET.CreateProgressBarBitmap();
             CreateTruckPanelControls();
-            CreateCoachModeControls();
+            CreateCoachModeControlsRefined();
             CreateTrailerPanelControls();
             IO_Utilities.LogWriter("Done.");
 
@@ -234,6 +245,9 @@ namespace TS_SE_Tool
             GetTranslationFiles();
             IO_Utilities.LogWriter("Translation menu loaded.");
             ChangeLanguage();
+            CacheProfileSkillPresentation();
+            defaultTruckTabText = tabPageTruck.Text;
+            UpdateNavigationForMode();
             ModernTheme.RefreshMainNavigation(this);
             IO_Utilities.LogWriter("Done.");
 

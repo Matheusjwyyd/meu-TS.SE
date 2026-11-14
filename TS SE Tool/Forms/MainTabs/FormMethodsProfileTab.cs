@@ -17,12 +17,93 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Linq;
 using TS_SE_Tool.Utilities;
 
 namespace TS_SE_Tool
 {
     public partial class FormMain
     {
+        private string[] defaultProfileSkillLabels;
+        private string defaultProfileSkillGroupTitle;
+
+        internal void CacheProfileSkillPresentation()
+        {
+            defaultProfileSkillLabels = new string[6];
+            for (int i = 0; i < defaultProfileSkillLabels.Length; i++)
+            {
+                Label label = groupBoxProfileSkill.Controls.Find("labelProfileSkill" + i, false).FirstOrDefault() as Label;
+                defaultProfileSkillLabels[i] = label == null ? "" : label.Text;
+            }
+            defaultProfileSkillGroupTitle = groupBoxProfileSkill.Text;
+        }
+
+        internal void SetProfileEditingMode(bool busMode)
+        {
+            if (defaultProfileSkillLabels == null)
+                CacheProfileSkillPresentation();
+
+            for (int i = 0; i < 6; i++)
+            {
+                Label label = groupBoxProfileSkill.Controls.Find("labelProfileSkill" + i, false).FirstOrDefault() as Label;
+                Panel icon = groupBoxProfileSkill.Controls.Find("profileSkillsPanel" + i, false).FirstOrDefault() as Panel;
+                if (label != null)
+                {
+                    label.Text = busMode ? CoachSkillNames[i] : defaultProfileSkillLabels[i];
+                    label.Location = new Point(88, busMode ? 17 + 62 * i : 17 + 69 * i);
+                }
+                if (icon != null)
+                {
+                    if (icon.BackgroundImage != null)
+                        icon.BackgroundImage.Dispose();
+                    if (busMode)
+                    {
+                        Image coachIcon = CreateCoachSkillIcon(i);
+                        icon.BackgroundImage = new Bitmap(coachIcon, 58, 58);
+                        coachIcon.Dispose();
+                        icon.Size = new Size(58, 58);
+                        icon.Location = new Point(12, 17 + 62 * i);
+                    }
+                    else
+                    {
+                        icon.BackgroundImage = new Bitmap(SkillImgS[i], 64, 64);
+                        icon.Size = new Size(64, 64);
+                        icon.Location = new Point(12, 17 + 69 * i);
+                    }
+                }
+            }
+
+            for (int i = 0; i < ADRbuttonArray.Length; i++)
+            {
+                ADRbuttonArray[i].Visible = !busMode || i < 3;
+                ADRbuttonArray[i].Location = new Point(88 + 54 * i, 31);
+                if (busMode)
+                    ADRbuttonArray[i].Image = null;
+                else
+                    ADRbuttonArray[i].Image = ADRImgSGrey[i];
+            }
+            for (int i = 0; i < SkillButtonArray.GetLength(0); i++)
+                for (int j = 0; j < SkillButtonArray.GetLength(1); j++)
+                {
+                    SkillButtonArray[i, j].Visible = !busMode || j < 3;
+                    SkillButtonArray[i, j].Location = new Point(88 + 54 * j,
+                        busMode ? 31 + 62 * (i + 1) : 31 + 69 * (i + 1));
+                }
+
+            groupBoxProfileSkill.Text = busMode
+                ? "Habilidades do ônibus"
+                : defaultProfileSkillGroupTitle;
+        }
+
+        internal void RefreshProfileForCurrentMode()
+        {
+            if (SiiNunitData == null)
+                return;
+            SetProfileEditingMode(IsBusMode);
+            FormUpdatePlayerLevel();
+            FillProfileSkillsForCurrentMode();
+        }
+
         //Profile tab
         private void CreateProfilePanelControls()
         {
@@ -114,24 +195,8 @@ namespace TS_SE_Tool
         private void FillFormProfileControls()
         {
             FormUpdatePlayerLevel();
-
-            char[] ADR = Convert.ToString(SiiNunitData.Economy.adr, 2).PadLeft(6, '0').ToCharArray();
-
-            Array.Reverse(ADR);
-
-            for (int i = 0; i < ADR.Length; i++)
-            {
-                if (ADR[i] == '1')
-                    ADRbuttonArray[i].Checked = true;
-            }
-
-            for (int i = 0; i < 5; i++)
-            {
-                for (int j = 0; j < SiiNunitData.Economy._playerSkills[i + 1]; j++)
-                {
-                    SkillButtonArray[i, j].Checked = true;
-                }
-            }
+            SetProfileEditingMode(IsBusMode);
+            FillProfileSkillsForCurrentMode();
 
             panelProfileUserColors.VerticalScroll.Value = 0;
             panelProfileUserColors.AutoScrollPosition = new Point(0, 0);
@@ -141,12 +206,65 @@ namespace TS_SE_Tool
             UpdateUserColorsButtons();
         }
 
+        private void FillProfileSkillsForCurrentMode()
+        {
+            foreach (CheckBox button in ADRbuttonArray)
+                button.Checked = false;
+            foreach (CheckBox button in SkillButtonArray)
+                button.Checked = false;
+
+            if (IsBusMode)
+            {
+                int[] busSkills = GetCoachSkillValues(SiiNunitData.Economy);
+                for (int level = 0; level < 3; level++)
+                    ADRbuttonArray[level].Checked = busSkills[0] > level;
+                for (int skill = 0; skill < 5; skill++)
+                    for (int level = 0; level < 3; level++)
+                        SkillButtonArray[skill, level].Checked = busSkills[skill + 1] > level;
+                UpdateCoachSkillPointsLabel();
+                return;
+            }
+
+            char[] ADR = Convert.ToString(SiiNunitData.Economy.adr, 2).PadLeft(6, '0').ToCharArray();
+            Array.Reverse(ADR);
+            for (int i = 0; i < ADR.Length; i++)
+                ADRbuttonArray[i].Checked = ADR[i] == '1';
+
+            for (int i = 0; i < 5; i++)
+                for (int j = 0; j < SiiNunitData.Economy._playerSkills[i + 1]; j++)
+                    SkillButtonArray[i, j].Checked = true;
+        }
+
+        private int[] GetCoachSkillValues(Save.Items.Economy economy)
+        {
+            return new int[]
+            {
+                economy.long_duty,
+                economy.tight_schedule,
+                economy.satisfaction_decrease,
+                economy.low_acceleration,
+                economy.satisfaction_increase,
+                economy.ecodriving
+            };
+        }
+
+        private void UpdateCoachSkillPointsLabel()
+        {
+            if (!IsBusMode || SiiNunitData == null)
+                return;
+            int spent = GetCoachSkillValues(SiiNunitData.Economy).Sum();
+            int level = SiiNunitData.Economy.getBusPlayerLvl()[0];
+            groupBoxProfileSkill.Text = "Habilidades do ônibus  ·  Pontos: " + (level - spent);
+        }
+
         private void FormUpdatePlayerLevel()
         {
             if (SiiNunitData == null)
                 return;
 
-            int[] playerLvlPlus = SiiNunitData.Economy.getPlayerLvl();
+            int[] playerLvlPlus = IsBusMode
+                ? SiiNunitData.Economy.getBusPlayerLvl()
+                : SiiNunitData.Economy.getPlayerLvl();
             int playerlvl = playerLvlPlus[0];
 
             for (int i = PlayerLevelNames.Count - 1; i >= 0; i--)
@@ -159,8 +277,11 @@ namespace TS_SE_Tool
 
             labelPlayerLevelNumber.Text = playerlvl.ToString();
 
-            labelPlayerExperience.Text = SiiNunitData.Economy.experience_points.ToString();
+            labelPlayerExperience.Text = IsBusMode
+                ? SiiNunitData.Economy.bus_experience_points.ToString()
+                : SiiNunitData.Economy.experience_points.ToString();
             labelPlayerExperienceNxtLvlThreshhold.Text = playerLvlPlus[1].ToString();
+            UpdateCoachSkillPointsLabel();
         }
 
         private void CreateUserColorsButtons()
@@ -537,42 +658,60 @@ namespace TS_SE_Tool
         //Profile buttons
         private void buttonPlayerLvlPlus01_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 1);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 1);
+            else
+                SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 1);
 
             FormUpdatePlayerLevel();
         }
 
         private void buttonPlayerLvlPlus10_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 10);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 10);
+            else
+                SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) + 10);
 
             FormUpdatePlayerLevel();
         }
 
         private void buttonPlayerLvlMax_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(150);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(150);
+            else
+                SiiNunitData.Economy.setPlayerExp(150);
 
             FormUpdatePlayerLevel();
         }
 
         private void buttonPlayerLvlMinus01_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 1);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 1);
+            else
+                SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 1);
 
             FormUpdatePlayerLevel();
         }
 
         private void buttonPlayerLvlMinus10_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 10);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 10);
+            else
+                SiiNunitData.Economy.setPlayerExp(int.Parse(labelPlayerLevelNumber.Text) - 10);
 
             FormUpdatePlayerLevel();
         }
 
         private void buttonPlayerLvlMin_Click(object sender, EventArgs e)
         {
-            SiiNunitData.Economy.setPlayerExp(0);
+            if (IsBusMode)
+                SiiNunitData.Economy.setBusPlayerExp(0);
+            else
+                SiiNunitData.Economy.setPlayerExp(0);
 
             FormUpdatePlayerLevel();
         }
@@ -585,6 +724,12 @@ namespace TS_SE_Tool
 
             int skillIndex = int.Parse(thisbutton.Name.Substring(11, 1));
             byte buttonIndex = byte.Parse(thisbutton.Name.Substring(12, 1));
+
+            if (IsBusMode)
+            {
+                ApplyCoachSkillLevel(skillIndex + 1, buttonIndex, thisbutton.Checked);
+                return;
+            }
 
             if (thisbutton.Checked)
             {
@@ -618,6 +763,7 @@ namespace TS_SE_Tool
 
             int skillIndex = int.Parse(thisbutton.Name.Substring(11, 1));
             byte buttonIndex = byte.Parse(thisbutton.Name.Substring(12, 1));
+            int lastPoint = IsBusMode ? 2 : 5;
 
             for (int j = 0; j <= buttonIndex; j++)
             {
@@ -625,7 +771,7 @@ namespace TS_SE_Tool
                     SkillButtonArray[skillIndex, j].BackgroundImage = SkillImgSBG[1];
             }
 
-            for (int j = buttonIndex; j < 6; j++)
+            for (int j = buttonIndex; j <= lastPoint; j++)
             {
                 if (SkillButtonArray[skillIndex, j].Checked)                
                     SkillButtonArray[skillIndex, j].BackgroundImage = SkillImgSBG[0];                
@@ -647,7 +793,7 @@ namespace TS_SE_Tool
                 }
             }
 
-            for (int j = int.Parse(thisbutton.Name.Substring(12, 1)); j < 6; j++)
+            for (int j = int.Parse(thisbutton.Name.Substring(12, 1)); j < (IsBusMode ? 3 : 6); j++)
             {
                 if (SkillButtonArray[i, j].Checked)
                 {
@@ -663,6 +809,12 @@ namespace TS_SE_Tool
 
             if (TextUtilities.ExtractFirstNumber(thisbutton.Name, out int number))
             {
+                if (IsBusMode)
+                {
+                    ApplyCoachSkillLevel(0, (byte)number, thisbutton.Checked);
+                    return;
+                }
+
                 char[] ADR = Convert.ToString(SiiNunitData.Economy._playerSkills[0], 2).PadLeft(6, '0').ToCharArray();
 
                 Array.Reverse(ADR);
@@ -682,6 +834,13 @@ namespace TS_SE_Tool
         private void ADRbutton_CheckedChanged(object sender, EventArgs e)
         {
             CheckBox thisbutton = sender as CheckBox;
+
+            if (IsBusMode)
+            {
+                thisbutton.Image = null;
+                thisbutton.BackgroundImage = SkillImgSBG[thisbutton.Checked ? 3 : 0];
+                return;
+            }
 
             byte adrIndex = byte.Parse(thisbutton.Name.Substring(9, 1));
 
@@ -708,6 +867,12 @@ namespace TS_SE_Tool
         {
             CheckBox thisbutton = sender as CheckBox;
 
+            if (IsBusMode)
+            {
+                thisbutton.BackgroundImage = SkillImgSBG[1];
+                return;
+            }
+
             byte adrIndex = byte.Parse(thisbutton.Name.Substring(9, 1));
 
             if (thisbutton.Checked)
@@ -730,6 +895,28 @@ namespace TS_SE_Tool
                 thisbutton.BackgroundImage = SkillImgSBG[3];
             else
                 thisbutton.BackgroundImage = SkillImgSBG[0];
+        }
+
+        private void ApplyCoachSkillLevel(int skill, byte levelIndex, bool selected)
+        {
+            if (SiiNunitData == null)
+                return;
+
+            int targetLevel = selected ? levelIndex + 1 : levelIndex;
+            if (skill == 0)
+            {
+                for (int point = 0; point < 3; point++)
+                    ADRbuttonArray[point].Checked = point < targetLevel;
+            }
+            else
+            {
+                int row = skill - 1;
+                for (int point = 0; point < 3; point++)
+                    SkillButtonArray[row, point].Checked = point < targetLevel;
+            }
+
+            SetCoachSkill(SiiNunitData.Economy, skill, targetLevel);
+            UpdateCoachSkillPointsLabel();
         }
 
         //end Skill buttons

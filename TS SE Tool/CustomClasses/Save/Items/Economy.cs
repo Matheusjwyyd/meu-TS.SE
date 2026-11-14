@@ -1514,6 +1514,52 @@ namespace TS_SE_Tool.Save.Items
             } while (true);
         }
 
+        internal int[] getBusPlayerLvl()
+        {
+            int currentLvl = 0, lvlThreshhold = 0;
+            int finalThreshhold = Globals.PlayerLevelUps[Globals.PlayerLevelUps.Length - 1];
+            int experience = Math.Max(0, bus_experience_points);
+
+            foreach (int lvlstep in Globals.PlayerLevelUps)
+            {
+                lvlThreshhold += lvlstep;
+                if (experience < lvlThreshhold)
+                    return new int[] { currentLvl, lvlThreshhold };
+                currentLvl++;
+            }
+
+            do
+            {
+                lvlThreshhold += finalThreshhold;
+                if (experience < lvlThreshhold)
+                    return new int[] { currentLvl, lvlThreshhold };
+                currentLvl++;
+            } while (true);
+        }
+
+        internal void setBusPlayerExp(int _plLvl)
+        {
+            if (_plLvl < 0)
+                _plLvl = 0;
+            if (_plLvl > 150)
+                _plLvl = 150;
+
+            long experience = 0;
+            for (int i = 0; i < _plLvl; i++)
+            {
+                int step = i < Globals.PlayerLevelUps.Length
+                    ? Globals.PlayerLevelUps[i]
+                    : Globals.PlayerLevelUps[Globals.PlayerLevelUps.Length - 1];
+                experience += step;
+            }
+
+            int nextStep = _plLvl < Globals.PlayerLevelUps.Length
+                ? Globals.PlayerLevelUps[_plLvl]
+                : Globals.PlayerLevelUps[Globals.PlayerLevelUps.Length - 1];
+            experience += nextStep - 1;
+            bus_experience_points = (int)Math.Min(Int32.MaxValue, experience);
+        }
+
         internal void setPlayerExp(int _plLvl)
         {
             uint experience = 0;
