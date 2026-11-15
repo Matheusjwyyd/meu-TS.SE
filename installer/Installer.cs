@@ -11,7 +11,7 @@ namespace MeuSaveEditorInstaller
     internal static class Program
     {
         internal const string ProductName = "Meu Save Editor";
-        internal const string ProductVersion = "0.3.13.1";
+        internal const string ProductVersion = "0.3.13.2";
         internal const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\MeuSaveEditor";
 
         [STAThread]

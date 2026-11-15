@@ -21,6 +21,8 @@ namespace TS_SE_Tool
         private Label labelCoachAvailableSkillPoints;
         private ProgressBar progressCoachExperience;
         private NumericUpDown[] coachCareerStatistics;
+        private NumericUpDown[] coachActiveJobStatistics;
+        private Label labelCoachActiveJobStatus;
         private Button buttonCoachEditAccessories;
         private Panel[] coachPartProgressPanels;
         private Label[] coachPartNameLabels;
@@ -65,6 +67,43 @@ namespace TS_SE_Tool
                 AddCoachGridField(statisticsGrid, i % 2, i / 2, CoachStatisticNames[i], coachCareerStatistics[i]);
             }
             flow.Controls.Add(statisticsGroup);
+
+            GroupBox activeJobGroup = CreateCoachGroup("Trabalho de ônibus atual", 145);
+            TableLayoutPanel activeJobGrid = CreateCoachGrid(2, 2);
+            activeJobGrid.RowStyles.Clear();
+            activeJobGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 72F));
+            activeJobGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 28F));
+            activeJobGroup.Controls.Add(activeJobGrid);
+
+            coachActiveJobStatistics = new NumericUpDown[2];
+            coachActiveJobStatistics[0] = CreateCoachNumberInput();
+            coachActiveJobStatistics[0].Minimum = 0;
+            coachActiveJobStatistics[0].Maximum = 100;
+            coachActiveJobStatistics[0].DecimalPlaces = 1;
+            coachActiveJobStatistics[0].Increment = 0.1M;
+            coachActiveJobStatistics[0].ValueChanged += CoachActiveJobStatisticChanged;
+            AddCoachGridField(activeJobGrid, 0, 0, "Satisfação dos passageiros (%)", coachActiveJobStatistics[0]);
+
+            coachActiveJobStatistics[1] = CreateCoachNumberInput();
+            coachActiveJobStatistics[1].Minimum = -10080;
+            coachActiveJobStatistics[1].Maximum = 10080;
+            coachActiveJobStatistics[1].DecimalPlaces = 0;
+            coachActiveJobStatistics[1].Increment = 1;
+            coachActiveJobStatistics[1].ValueChanged += CoachActiveJobStatisticChanged;
+            AddCoachGridField(activeJobGrid, 1, 0, "Atraso atual (min)", coachActiveJobStatistics[1]);
+
+            labelCoachActiveJobStatus = new Label
+            {
+                Name = "labelCoachActiveJobStatus",
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = ModernTheme.PrimaryGray,
+                Text = "Carregue um salvamento com uma viagem de ônibus ativa."
+            };
+            activeJobGrid.Controls.Add(labelCoachActiveJobStatus, 0, 1);
+            activeJobGrid.SetColumnSpan(labelCoachActiveJobStatus, 2);
+            flow.Controls.Add(activeJobGroup);
             MakeCoachFlowResponsive(flow);
         }
 
@@ -641,6 +680,7 @@ namespace TS_SE_Tool
             };
             for (int i = 0; i < coachCareerStatistics.Length; i++)
                 SetCoachNumber(coachCareerStatistics[i], values[i]);
+            UpdateCoachActiveJobStatisticsDisplay();
             refreshingCoachMode = false;
             UpdateCoachModeGameAvailability();
         }
@@ -651,6 +691,16 @@ namespace TS_SE_Tool
             if (coachCareerStatistics != null)
                 foreach (NumericUpDown input in coachCareerStatistics)
                     input.Value = 0;
+            if (coachActiveJobStatistics != null)
+            {
+                foreach (NumericUpDown input in coachActiveJobStatistics)
+                {
+                    input.Value = 0;
+                    input.Enabled = false;
+                }
+            }
+            if (labelCoachActiveJobStatus != null)
+                labelCoachActiveJobStatus.Text = "Carregue um salvamento com uma viagem de ônibus ativa.";
             refreshingCoachMode = false;
             UpdateCoachModeGameAvailability();
         }
@@ -661,6 +711,13 @@ namespace TS_SE_Tool
             if (number < input.Minimum) number = input.Minimum;
             if (number > input.Maximum) number = input.Maximum;
             input.Value = number;
+        }
+
+        private static void SetCoachDecimal(NumericUpDown input, decimal value)
+        {
+            if (value < input.Minimum) value = input.Minimum;
+            if (value > input.Maximum) value = input.Maximum;
+            input.Value = value;
         }
 
         private void UpdateCoachLevelDisplay()
@@ -794,6 +851,377 @@ namespace TS_SE_Tool
             economy.bus_total_stops = (int)coachCareerStatistics[4].Value;
             economy.bus_game_time = (int)coachCareerStatistics[5].Value;
             economy.bus_playing_time = (int)coachCareerStatistics[6].Value;
+        }
+
+        private void UpdateCoachActiveJobStatisticsDisplay()
+        {
+            if (coachActiveJobStatistics == null || labelCoachActiveJobStatus == null)
+                return;
+
+            Unidentified job;
+            Unidentified stage;
+            List<Unidentified> passengers;
+            int stageIndex;
+            if (!TryGetActiveCoachJob(out job, out stage, out passengers, out stageIndex))
+            {
+                bool previousRefreshState = refreshingCoachMode;
+                refreshingCoachMode = true;
+                coachActiveJobStatistics[0].Value = 0;
+                coachActiveJobStatistics[1].Value = 0;
+                coachActiveJobStatistics[0].Enabled = false;
+                coachActiveJobStatistics[1].Enabled = false;
+                refreshingCoachMode = previousRefreshState;
+                labelCoachActiveJobStatus.Text = "Nenhuma viagem de ônibus ativa foi encontrada neste save.";
+                return;
+            }
+
+            bool previousDisplayRefreshState = refreshingCoachMode;
+            refreshingCoachMode = true;
+            float satisfaction;
+            bool hasSatisfaction = TryReadSCSFloat(stage, "satisfaction", out satisfaction) && satisfaction >= 0F;
+            if (!hasSatisfaction)
+            {
+                float total = 0F;
+                int count = 0;
+                foreach (Unidentified passenger in passengers)
+                {
+                    float passengerSatisfaction;
+                    if (TryReadSCSFloat(passenger, "satisfaction", out passengerSatisfaction) &&
+                        passengerSatisfaction >= 0F && passengerSatisfaction <= 1F)
+                    {
+                        total += passengerSatisfaction;
+                        count++;
+                    }
+                }
+                if (count > 0)
+                {
+                    satisfaction = total / count;
+                    hasSatisfaction = true;
+                }
+            }
+
+            coachActiveJobStatistics[0].Enabled = hasSatisfaction || HasRawField(stage, "satisfaction");
+            if (hasSatisfaction)
+                SetCoachDecimal(coachActiveJobStatistics[0], (decimal)Math.Round(satisfaction * 100F, 1));
+            else
+                SetCoachDecimal(coachActiveJobStatistics[0], 0M);
+
+            int plannedArrival = 0;
+            int estimatedArrival = 0;
+            bool hasArrivalEstimate = TryGetActiveCoachDelay(stage, out plannedArrival, out estimatedArrival);
+            coachActiveJobStatistics[1].Enabled = hasArrivalEstimate;
+            if (!hasArrivalEstimate)
+                SetCoachDecimal(coachActiveJobStatistics[1], 0M);
+            if (hasArrivalEstimate)
+            {
+                decimal delay = (decimal)estimatedArrival - plannedArrival;
+                SetCoachDecimal(coachActiveJobStatistics[1], delay);
+                toolTipMain.SetToolTip(coachActiveJobStatistics[1],
+                    "Atraso estimado = chegada estimada menos chegada programada. Edite o atraso em minutos.");
+                labelCoachActiveJobStatus.Text = "Estágio " + (stageIndex + 1) + " da viagem ativa; passageiros: " + passengers.Count + ".";
+                labelCoachActiveJobStatus.ForeColor = ModernTheme.PrimaryGray;
+            }
+            else
+            {
+                labelCoachActiveJobStatus.Text = "Viagem ativa detectada; o estágio atual ainda não tem horários de chegada para calcular o atraso.";
+                labelCoachActiveJobStatus.ForeColor = ModernTheme.PrimaryGray;
+            }
+
+            if (!coachActiveJobStatistics[0].Enabled)
+            {
+                labelCoachActiveJobStatus.Text = "Viagem ativa detectada; a satisfação ainda não está disponível neste estágio.";
+                labelCoachActiveJobStatus.ForeColor = ModernTheme.PrimaryGray;
+            }
+            refreshingCoachMode = previousDisplayRefreshState;
+        }
+
+        private bool TryGetActiveCoachJob(out Unidentified job, out Unidentified stage,
+            out List<Unidentified> passengers, out int stageIndex)
+        {
+            job = null;
+            stage = null;
+            passengers = new List<Unidentified>();
+            stageIndex = 0;
+
+            if (SiiNunitData == null || SiiNunitData.Player == null)
+                return false;
+
+            string jobId = SiiNunitData.Player.current_bus_job;
+            if (String.IsNullOrWhiteSpace(jobId) || jobId == "null" ||
+                !TryGetUnidentifiedBlock(jobId, out job))
+                return false;
+
+            if (!TryReadRawInt(job, "stage_idx", out stageIndex))
+                return false;
+
+            List<string> stageIds = ReadRawArray(job, "stages");
+            if (stageIndex < 0 || stageIndex >= stageIds.Count ||
+                !TryGetUnidentifiedBlock(stageIds[stageIndex], out stage))
+                return false;
+
+            foreach (string passengerId in ReadRawArray(job, "passengers"))
+            {
+                Unidentified passenger;
+                if (TryGetUnidentifiedBlock(passengerId, out passenger))
+                    passengers.Add(passenger);
+            }
+
+            return true;
+        }
+
+        private bool TryGetActiveCoachDelay(Unidentified stage, out int plannedArrival, out int estimatedArrival)
+        {
+            plannedArrival = 0;
+            estimatedArrival = 0;
+            if (stage == null || SiiNunitData == null || SiiNunitData.Economy == null)
+                return false;
+
+            int plannedDeparture = 0;
+            int plannedStageDuration = 0;
+            int plannedFerryDuration = 0;
+            int actualDeparture = 0;
+            bool hasPlannedArrival = TryReadRawInt(stage, "planned_arrival_time", out plannedArrival);
+            bool hasActualArrival = TryReadRawInt(stage, "arrival_time", out estimatedArrival);
+            bool hasPlannedDeparture = TryReadRawInt(stage, "planned_departure_time", out plannedDeparture);
+            bool hasStageDuration = TryReadRawInt(stage, "planned_stage_time", out plannedStageDuration);
+            bool hasFerryDuration = TryReadRawInt(stage, "planned_ferry_time", out plannedFerryDuration);
+            bool hasActualDeparture = TryReadRawInt(stage, "departure_time", out actualDeparture);
+
+            if (!hasPlannedArrival)
+            {
+                if (!hasPlannedDeparture || !hasStageDuration)
+                    return false;
+
+                long scheduledArrival = (long)plannedDeparture + plannedStageDuration +
+                    (hasFerryDuration ? plannedFerryDuration : 0);
+                if (scheduledArrival < Int32.MinValue || scheduledArrival > Int32.MaxValue)
+                    return false;
+                plannedArrival = (int)scheduledArrival;
+            }
+
+            if (hasActualArrival)
+                return true;
+
+            int remainingStageMinutes;
+            int remainingFerryMinutes = hasFerryDuration ? plannedFerryDuration : 0;
+            float plannedDistance;
+            float travelledDistance;
+            if (hasStageDuration && TryReadRawNumber(stage, "planned_distance", out plannedDistance) &&
+                TryReadRawNumber(stage, "travelled_distance", out travelledDistance) && plannedDistance > 0F)
+            {
+                float progress = Math.Max(0F, Math.Min(1F, travelledDistance / plannedDistance));
+                remainingStageMinutes = (int)Math.Ceiling(plannedStageDuration * (1F - progress));
+
+                if (hasActualDeparture && hasFerryDuration)
+                {
+                    int elapsed = Math.Max(0, (int)SiiNunitData.Economy.game_time - actualDeparture);
+                    int ferryElapsed = Math.Max(0, elapsed - plannedStageDuration);
+                    remainingFerryMinutes = Math.Max(0, plannedFerryDuration - ferryElapsed);
+                }
+            }
+            else if (hasStageDuration && hasActualDeparture)
+            {
+                int elapsed = Math.Max(0, (int)SiiNunitData.Economy.game_time - actualDeparture);
+                remainingStageMinutes = Math.Max(0, plannedStageDuration - elapsed);
+                if (hasFerryDuration)
+                    remainingFerryMinutes = Math.Max(0, plannedFerryDuration - Math.Max(0, elapsed - plannedStageDuration));
+            }
+            else
+            {
+                return false;
+            }
+
+            long estimate = (long)SiiNunitData.Economy.game_time + remainingStageMinutes + remainingFerryMinutes;
+            if (estimate < Int32.MinValue || estimate > Int32.MaxValue)
+                return false;
+
+            estimatedArrival = (int)estimate;
+            return true;
+        }
+
+        private static bool TryReadRawNumber(Unidentified block, string fieldName, out float value)
+        {
+            value = 0F;
+            string raw;
+            if (!TryReadRawField(block, fieldName, out raw) || raw == "nil")
+                return false;
+
+            try
+            {
+                Save.DataFormat.SCS_Float parsed = raw;
+                value = parsed.Value;
+                return !Single.IsNaN(value) && !Single.IsInfinity(value);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool TryGetUnidentifiedBlock(string blockId, out Unidentified block)
+        {
+            block = null;
+            if (String.IsNullOrWhiteSpace(blockId) || blockId == "null" ||
+                !SiiNunitData.SiiNitems.ContainsKey(blockId))
+                return false;
+
+            block = SiiNunitData.SiiNitems[blockId] as Unidentified;
+            return block != null;
+        }
+
+        private static List<string> ReadRawArray(Unidentified block, string fieldName)
+        {
+            List<KeyValuePair<int, string>> values = new List<KeyValuePair<int, string>>();
+            if (block == null || block.lines == null)
+                return new List<string>();
+
+            string prefix = fieldName + "[";
+            foreach (string line in block.lines)
+            {
+                int colon = line.IndexOf(':');
+                if (colon <= 0)
+                    continue;
+
+                string tag = line.Substring(0, colon).Trim();
+                if (!tag.StartsWith(prefix, StringComparison.Ordinal) || !tag.EndsWith("]", StringComparison.Ordinal))
+                    continue;
+
+                int index;
+                string indexText = tag.Substring(prefix.Length, tag.Length - prefix.Length - 1);
+                if (Int32.TryParse(indexText, out index))
+                    values.Add(new KeyValuePair<int, string>(index, line.Substring(colon + 1).Trim()));
+            }
+
+            return values.OrderBy(item => item.Key).Select(item => item.Value).ToList();
+        }
+
+        private static bool HasRawField(Unidentified block, string fieldName)
+        {
+            string value;
+            return TryReadRawField(block, fieldName, out value);
+        }
+
+        private static bool TryReadRawField(Unidentified block, string fieldName, out string value)
+        {
+            value = null;
+            if (block == null || block.lines == null)
+                return false;
+
+            foreach (string line in block.lines)
+            {
+                int colon = line.IndexOf(':');
+                if (colon <= 0 || !String.Equals(line.Substring(0, colon).Trim(), fieldName, StringComparison.Ordinal))
+                    continue;
+
+                value = line.Substring(colon + 1).Trim();
+                return true;
+            }
+            return false;
+        }
+
+        private static bool TryReadRawInt(Unidentified block, string fieldName, out int value)
+        {
+            string raw;
+            value = 0;
+            return TryReadRawField(block, fieldName, out raw) &&
+                Int32.TryParse(raw, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out value);
+        }
+
+        private static bool TryReadSCSFloat(Unidentified block, string fieldName, out float value)
+        {
+            value = 0F;
+            string raw;
+            if (!TryReadRawField(block, fieldName, out raw) || raw == "nil")
+                return false;
+
+            try
+            {
+                Save.DataFormat.SCS_Float parsed = raw;
+                value = parsed.Value;
+                return !Single.IsNaN(value) && !Single.IsInfinity(value);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool SetRawField(Unidentified block, string fieldName, string value)
+        {
+            if (block == null || block.lines == null)
+                return false;
+
+            for (int i = 0; i < block.lines.Count; i++)
+            {
+                string line = block.lines[i];
+                int colon = line.IndexOf(':');
+                if (colon <= 0 || !String.Equals(line.Substring(0, colon).Trim(), fieldName, StringComparison.Ordinal))
+                    continue;
+
+                block.lines[i] = line.Substring(0, colon + 1) + " " + value;
+                return true;
+            }
+            return false;
+        }
+
+        private void CoachActiveJobStatisticChanged(object sender, EventArgs e)
+        {
+            if (refreshingCoachMode || SiiNunitData == null || !IsBusMode || coachActiveJobStatistics == null)
+                return;
+
+            Unidentified job;
+            Unidentified stage;
+            List<Unidentified> passengers;
+            int stageIndex;
+            if (!TryGetActiveCoachJob(out job, out stage, out passengers, out stageIndex))
+            {
+                UpdateCoachActiveJobStatisticsDisplay();
+                return;
+            }
+
+            if (sender == coachActiveJobStatistics[0])
+            {
+                float target = (float)(coachActiveJobStatistics[0].Value / 100M);
+                List<KeyValuePair<Unidentified, float>> currentPassengerSatisfaction = new List<KeyValuePair<Unidentified, float>>();
+                foreach (Unidentified passenger in passengers)
+                {
+                    float value;
+                    if (TryReadSCSFloat(passenger, "satisfaction", out value) && value >= 0F && value <= 1F)
+                        currentPassengerSatisfaction.Add(new KeyValuePair<Unidentified, float>(passenger, value));
+                }
+
+                if (currentPassengerSatisfaction.Count > 0)
+                {
+                    float average = currentPassengerSatisfaction.Average(item => item.Value);
+                    float shift = target - average;
+                    foreach (KeyValuePair<Unidentified, float> passenger in currentPassengerSatisfaction)
+                    {
+                        float adjusted = Math.Max(0F, Math.Min(1F, passenger.Value + shift));
+                        Save.DataFormat.SCS_Float serialized = adjusted;
+                        SetRawField(passenger.Key, "satisfaction", serialized.ToString());
+                    }
+                }
+
+                Save.DataFormat.SCS_Float stageSatisfaction = target;
+                SetRawField(stage, "satisfaction", stageSatisfaction.ToString());
+            }
+            else if (sender == coachActiveJobStatistics[1])
+            {
+                int plannedArrival;
+                int estimatedArrival;
+                bool hasSchedule = TryGetActiveCoachDelay(stage, out plannedArrival, out estimatedArrival);
+
+                if (hasSchedule)
+                {
+                    decimal scheduledArrival = estimatedArrival - coachActiveJobStatistics[1].Value;
+                    if (scheduledArrival >= Int32.MinValue && scheduledArrival <= Int32.MaxValue)
+                        SetRawField(stage, "planned_arrival_time", Decimal.ToInt32(scheduledArrival).ToString(
+                            System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
+
+            UpdateCoachActiveJobStatisticsDisplay();
         }
 
         private void CoachVehicleSelectionChangedRefined(object sender, EventArgs e)

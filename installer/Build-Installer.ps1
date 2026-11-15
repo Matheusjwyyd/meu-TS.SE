@@ -8,7 +8,7 @@ $distPath = Join-Path $repoRoot "dist"
 $stagePath = Join-Path $env:TEMP ("MeuSaveEditor-release-" + [Guid]::NewGuid().ToString("N"))
 $appStagePath = Join-Path $stagePath "payload"
 $payloadZip = Join-Path $stagePath "Payload.zip"
-$version = "0.3.13.1"
+$version = "0.3.13.2"
 
 if (-not $SkipAppBuild) {
     & (Join-Path $repoRoot "build_and_run.ps1")
